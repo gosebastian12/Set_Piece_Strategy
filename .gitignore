@@ -1,0 +1,7 @@
+### See the official documentation about gitignore files at: https://git-scm.com/docs/gitignore
+# Unnecessary module and jupyter files
+**/.ipynb_checkpoints
+**/__pycache__
+**/.DS_Store
+src.egg-info/
+env/
