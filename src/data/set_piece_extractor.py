@@ -18,6 +18,7 @@ import os
 # data manipulation
 import pandas as pd
 import numpy as np
+from shapely.geometry import Polygon, Point
 
 # custom modules
 from src.data import data_loader as dl
@@ -25,6 +26,7 @@ from src.data import data_loader as dl
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
 RAW_EVENTS_DF = dl.raw_event_data(league_name="all")
+PLYR_DF = df.player_data()
 
 
 ################################
@@ -181,7 +183,7 @@ def changed_possession_checker(set_piece_start_id: int) -> list:
 
 	# Next obtain subsequent plays.
 	sequence_df = subsequent_play_generator(
-		set_piece_start_id=set_piece_start_id, num_events=25
+		set_piece_start_id=set_piece_start_id, num_events=20
 	)
 
 	# Now determine if the sequence of events that make up the set piece
@@ -198,9 +200,10 @@ def changed_possession_checker(set_piece_start_id: int) -> list:
 
 	consec_passes_threshold = 3
 	num_consecutive_opp_passes = 0
+	consec_passes_ids = []
 	past_event_by_opp = [False, -1]
 
-	for event in sequence_df.to_numpy().tolist():
+	for event in sequence_df.to_numpy().tolist()[1::]:
 		# Iterate over each event.
 		if event[7] != attacking_team_id:
 			# If the opposing team is initiating this event. Notice how
@@ -224,25 +227,30 @@ def changed_possession_checker(set_piece_start_id: int) -> list:
 			# Threshold checks
 			if num_consecutive_opp_passes > consec_passes_threshold:
 				# If the opposing team has made several passes in a row.
-				interim_to_return = [True, event[-1]]
+				interim_to_return = [True, consec_passes_ids[0]]
 				break
 			if opp_poss_cons_time >= opp_poss_time_threshold:
 				# If the opposing team has had uninterrupted possession
 				# for more than 30 seconds.
-				interim_to_return = [True, event[-1]]
+				interim_to_return = [True, consec_passes_ids[0]]
 				break
-			if any([start_x > 50, start_y > 50, end_x > 50, end_y > 50]):
+			if any([start_x > 50, end_x > 50]):
 				# If the (originally) opposing team has fought its way to
 				# the (originally) attacking team's side of the field.
-				interim_to_return = [True, event[-1]]
+				try:
+					interim_to_return = [True, consec_passes_ids[0]]
+				except IndexError:
+					interim_to_return = [True, event[-1]]
 				break
 
 			# Update necessary values.
 			past_event_by_opp = [True, event[9]]
+			consec_passes_ids.append(event[-1])
 		else:
 			# If the attacking team still has possession.
 			num_consecutive_opp_passes = 0
 			opp_poss_cons_time = 0
+			consec_passes_ids = []
 
 	to_return = [False, -1] if isinstance(interim_to_return, type(None)) \
 	                        else interim_to_return
@@ -279,13 +287,90 @@ def attack_reset_checker(set_piece_start_id: int) -> list:
 
 	References
 	----------
-	1. 
+	1. https://shapely.readthedocs.io/en/latest/manual.html#introduction
 	"""
 	to_return = None
 	# First, let's validate the inputted data.
 	_ = start_id_checker(set_piece_start_id)
 
-	# Next,
+	# Next obtain subsequent plays.
+	sequence_df = subsequent_play_generator(
+		set_piece_start_id=set_piece_start_id, num_events=20
+	)
+
+	# Now let us determine if the set piece sequence ended with the attacking
+	# team resetting their attack.
+	beginning_row = sequence_df.iloc[0]
+	attacking_team_id = beginning_row.teamId
+	field_position_start = beginning_row.positions
+
+	midfieldish_to_back_polygon = Polygon([
+		[55, 0], [0, 0], [0, 100], [55, 100], [55, 0]
+	])
+
+	for event in sequence_df.to_numpy().tolist()[1::]:
+		# Iterate over each event that we have obtained.
+		if event[7] == attacking_team_id:
+			# Only do an analysis of events if they were initiated by
+			# the attacking team. This is because events by the other team
+			# do not tell us anything about any resets that were made by
+			# the attacking team.
+			event_id = event[0]
+			sub_event_id = event[-2]
+
+			initiating_player_id = event[3]
+			initiating_player_pos = PLYR_DF[
+				PLYR_DF.wyId == initiating_player_id
+			].role.iloc[0].get("code3")
+
+			event_field_position = event[4]
+
+			# First, take a look at where the event occurred. If it
+			# occurred near mid-field or in the attacking team's side of
+			# the pitch, then that may be because of a reset that was
+			# initiated by the attacking team.
+			starting_point = Point(
+				event_field_position[0].get("x"), 
+				event_field_position[0].get("y")
+			)
+			ending_point = Point(
+				event_field_position[1].get("x"), 
+				event_field_position[1].get("y")
+			)
+
+			# After defining these variables, make the position checks.
+			reset_pos = ["DEF", "GKP"]
+			if initiating_player_pos in reset_pos and event_id != 10:
+				# If the player initiating the event is a defender or
+				# goal keeper and is not attempting a shot.
+				to_return = [True, event[-1]] # Give spot check for this test.
+
+			is_back_field = [
+				ending_point.within(midfieldish_to_back_polygon),
+				starting_point.within(midfieldish_to_back_polygon)
+			]
+			if any(is_back_field):
+				# If this event is one where it starts or ends in the
+				# attacking team's own side of the pitch.
+				to_return = [True, event[-1]]
+
+			consec_backward_pass = 0
+			consec_backward_threshold = 3
+			consec_backward_passes_ids = []
+			attack_going_backward = starting_point.x > ending_point.x
+				# Recall how the field position goes up as the attacking
+				# team gets closer to the opponent's goal.
+			if attack_going_backward:
+				consec_backward_pass += 1
+				consec_backward_passes_ids.append(event[-1])
+			else:
+				consec_backward_pass = 0
+				consec_backward_passes_ids = []
+			if consec_backward_pass >= consec_backward_threshold:
+				to_return = [True, consec_backward_passes_ids[0]]
+
+	to_return = [False, -1] if isinstance(interim_to_return, type(None)) \
+	                        else interim_to_return
 
 	return to_return
 
@@ -323,7 +408,12 @@ def goalie_save_checker(set_piece_start_id: int) -> list:
 	# First, let's validate the inputted data.
 	_ = start_id_checker(set_piece_start_id)
 
-	# Next,
+	# Next obtain subsequent plays.
+	sequence_df = subsequent_play_generator(
+		set_piece_start_id=set_piece_start_id, num_events=20
+	)
+
+	# Now let us determine if
 
 	return to_return
 
@@ -362,7 +452,12 @@ def goal_checker(set_piece_start_id: int) -> list:
 	# First, let's validate the inputted data.
 	_ = start_id_checker(set_piece_start_id)
 
-	# Next,
+	# Next obtain subsequent plays.
+	sequence_df = subsequent_play_generator(
+		set_piece_start_id=set_piece_start_id, num_events=20
+	)
+
+	# Now let us determine if
 
 	return to_return
 
@@ -403,7 +498,12 @@ def stop_in_play_checker(set_piece_start_id: int) -> list:
 	# First, let's validate the inputted data.
 	_ = start_id_checker(set_piece_start_id)
 
-	# Next,
+	# Next obtain subsequent plays.
+	sequence_df = subsequent_play_generator(
+		set_piece_start_id=set_piece_start_id, num_events=20
+	)
+
+	# Now let us determine if
 
 	return to_return
 

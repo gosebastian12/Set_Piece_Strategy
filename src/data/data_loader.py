@@ -229,3 +229,46 @@ def event_id_mapper(rel_path=None) -> pd.DataFrame:
     to_return = mapper_df
 
     return to_return
+
+
+def player_data(rel_path=None) -> pd.DataFrame:
+    """
+    Purpose
+    -------
+    The purpose of this function is to provide a quick and easy way to
+    load in the ID mapper file created by Wyscout.
+
+    Parameters
+    ----------
+    rel_path : str or NoneType
+            This argument allows the user to specify a relative path from this
+            script to the Event ID Mapper CSV file. Its default value is `None`,
+            then it will default to the relative path that is present when
+            the project repository is cloned.
+
+    Returns
+    -------
+    to_return : Pandas DataFrame
+            This function returns a Pandas DataFrame that contains all of the
+            contents loaded in from the Event ID Mapper CSV.
+    """
+    to_return = None
+    # First, let's navigate to the appropriate directory.
+    player_rel_dir = "../../data/raw/" if not rel_path else rel_path
+    player_dir = os.path.join(SCRIPT_DIR, player_rel_dir)
+
+    try:
+        os.chdir(player_dir)
+    except FileNotFoundError as error_with_dir:
+        error_msg = "Data directory {} could not be located. Has the \
+        structure of the cloned repository been modified?".format(player_dir)
+
+        print(error_msg)
+        raise error_with_dir
+
+    # Finally, load in the data with Pandas.
+    mapper_df = pd.read_json("players.json")
+    to_return = mapper_df
+
+    return to_return
+    
