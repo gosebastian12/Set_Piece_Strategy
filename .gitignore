@@ -5,3 +5,6 @@
 **/.DS_Store
 src.egg-info/
 env/
+
+# Large data file
+data/raw/events/**
