@@ -7,4 +7,4 @@ src.egg-info/
 env/
 
 # Large data file
-data/raw/events/**
+data/raw/events/*.json

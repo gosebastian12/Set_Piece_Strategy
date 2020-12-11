@@ -18,6 +18,7 @@ import os
 # data manipulation
 import pandas as pd
 import numpy as np
+import swifter as swift
 from shapely.geometry import Polygon, Point
 
 # custom modules
@@ -50,16 +51,24 @@ def start_id_checker(set_piece_start_id: int) -> None:
 	to_return : 
 		This function returns 
 
+	Raises
+	------
+	AssertionError
+		This type of error is raised when either the user passes in a
+		non-integer ID or a non-positive integer.
+
 	References
 	----------
 	1. https://docs.python.org/3/tutorial/errors.html
 	"""
 	try:
 		assert isinstance(set_piece_start_id, int)
+		assert set_piece_start_id > 0
 	except AssertionError as ass_err:
 		error_msg = "Invalid input to function. The argument \
-		`set_piece_start_id` must be an integer. Received type \
-		`{}`.".format(type(set_piece_start_id))
+		`set_piece_start_id` must be non-zero integer. Received type \
+		`{}` and value `{}`.".format(type(set_piece_start_id), 
+			                         set_piece_start_id)
 
 		print(error_msg)
 		raise ass_err
@@ -361,12 +370,16 @@ def attack_reset_checker(set_piece_start_id: int) -> list:
 				# Recall how the field position goes up as the attacking
 				# team gets closer to the opponent's goal.
 			if attack_going_backward:
+				# If this specific event is associated with a backwards
+				# pass by the team that initiated the set piece.
 				consec_backward_pass += 1
 				consec_backward_passes_ids.append(event[-1])
 			else:
+				# If the event is not a backwards pass.
 				consec_backward_pass = 0
 				consec_backward_passes_ids = []
 			if consec_backward_pass >= consec_backward_threshold:
+				# If you have seen multiple backward passes in a road.
 				to_return = [True, consec_backward_passes_ids[0]]
 
 	to_return = [False, -1] if isinstance(interim_to_return, type(None)) \
@@ -402,9 +415,9 @@ def goalie_save_checker(set_piece_start_id: int) -> list:
 
 	References
 	----------
-	1. 
+	1. https://numpy.org/doc/stable/reference/generated/numpy.any.html
 	"""
-	to_return = None
+	to_return = [False, -1]
 	# First, let's validate the inputted data.
 	_ = start_id_checker(set_piece_start_id)
 
@@ -413,7 +426,16 @@ def goalie_save_checker(set_piece_start_id: int) -> list:
 		set_piece_start_id=set_piece_start_id, num_events=20
 	)
 
-	# Now let us determine if
+	# Now let us determine if the set piece was finished by the goal saving
+	# a shot attempt.
+	save_attempt_checker_series = sequence_df.eventId == 9
+	was_there_a_save = np.any(save_attempt_checker_series)
+	if was_there_a_save:
+		# If there was a save attempt made in this sequence of plays.
+		row_index_of_save_attempt = np.argwhere(
+			save_attempt_checker_series).flatten()[0]
+		to_return = [True, 
+		             sequence_df.iloc[row_index_of_save_attempt].id]
 
 	return to_return
 
@@ -446,9 +468,9 @@ def goal_checker(set_piece_start_id: int) -> list:
 
 	References
 	----------
-	1. 
+	1. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.apply.html
 	"""
-	to_return = None
+	to_return = [False, -1]
 	# First, let's validate the inputted data.
 	_ = start_id_checker(set_piece_start_id)
 
@@ -457,7 +479,19 @@ def goal_checker(set_piece_start_id: int) -> list:
 		set_piece_start_id=set_piece_start_id, num_events=20
 	)
 
-	# Now let us determine if
+	# Now let us determine if the set piece sequence of interest was ended
+	# by a goal being scored.
+	goal_checker_series = sequence_df.swift.apply(
+		func=lambda x: {"id":101} in x.tags, 
+		axis="columns"
+	)
+	was_there_a_goal = np.any(goal_checker_series)
+	if was_there_a_goal:
+		# If there was a save attempt made in this sequence of plays.
+		row_index_of_goal = np.argwhere(
+			goal_checker_series).flatten()[0]
+		to_return = [True, 
+		             sequence_df.iloc[row_index_of_goal].id]
 
 	return to_return
 
