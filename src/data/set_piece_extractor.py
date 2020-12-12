@@ -431,6 +431,7 @@ def goalie_save_checker(set_piece_start_id: int) -> list:
 				# If all of our checks for a successful save attempt
 				# pass.
 				to_return = [True, event_row.id]
+				break
 
 	return to_return
 
@@ -572,7 +573,7 @@ def offsides_checker(set_piece_start_id: int) -> list:
 	----------
 	1. 
 	"""
-	to_return = None
+	to_return = [False, -1]
 	# First, let's validate the inputted data.
 	_ = ct.start_id_checker(set_piece_start_id)
 
@@ -581,7 +582,15 @@ def offsides_checker(set_piece_start_id: int) -> list:
 		set_piece_start_id=set_piece_start_id, num_events=20
 	)
 
-	# Now let us determine if
+	# Now let us determine if the set piece sequence ended because of an
+	# offsides call.
+	offside_checker_series = sequence_df.eventId == 6
+	if np.any(offside_checker_series):
+		# If there was a player on the attacking team called offsides.
+		row_index_of_offside = np.argwhere(
+			offside_checker_series).flatten()[0]
+		to_return = [True, 
+		             sequence_df.iloc[row_index_of_offside].id]
 
 	return to_return
 
@@ -625,7 +634,15 @@ def out_of_play_checker(set_piece_start_id: int) -> list:
 		set_piece_start_id=set_piece_start_id, num_events=20
 	)
 
-	# Now let us determine if
+	# Now let us determine if the set piece sequence ended because of the
+	# ball ending up out of bounds.
+	out_of_bounds_checker_series = sequence_df.subEventId == 50
+	if np.any(out_of_bounds_checker_series):
+		# If there was a player on the attacking team called offsides.
+		row_index_of_out = np.argwhere(
+			out_of_bounds_checker_series).flatten()[0]
+		to_return = [True, 
+		             sequence_df.iloc[row_index_of_out].id]
 
 	return to_return
 
@@ -660,7 +677,7 @@ def end_of_regulation_checker(set_piece_start_id: int) -> list:
 	----------
 	1. 
 	"""
-	to_return = None
+	to_return = [False, -1]
 	# First, let's validate the inputted data.
 	_ = ct.start_id_checker(set_piece_start_id)
 
@@ -669,7 +686,28 @@ def end_of_regulation_checker(set_piece_start_id: int) -> list:
 		set_piece_start_id=set_piece_start_id, num_events=20
 	)
 
-	# Now let us determine if
+	# Now let us determine if the set piece sequence ended because of the
+	# half or match ending.
+	whistle_checker_series = sequence_df.subEventId == 51
+	if np.any(whistle_checker_series):
+		# If there was a referee whistle that caused an interruption in play.
+		whistle_row_indicies = np.argwhere(
+			whistle_checker_series).tolist()
+		for while_index in whistle_row_indicies:
+			# Iterate over each instance of a whistle occurring that caused
+			# a pause in play.
+			whistle_row = sequence_df.iloc[while_index]
+			next_row = sequence_df.iloc[while_index + 1]
+
+			half_match_checker = [
+				whistle_row.matchPeriod != next_row.matchPeriod,
+				whistle_row.matchId != next_row.matchId
+			]
+			if any(half_match_checker):
+				# If we have confirmed that the whistle was because of
+				# an end in the half/match.
+				to_return = [True, whistle_row.id]
+				break
 
 	return to_return
 
