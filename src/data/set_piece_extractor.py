@@ -496,16 +496,14 @@ def goal_checker(set_piece_start_id: int) -> list:
 	return to_return
 
 
-def stop_in_play_checker(set_piece_start_id: int) -> list:
+def foul_checker(set_piece_start_id: int) -> list:
 	"""
 	Purpose
 	-------
 	The purpose of this function is to take the ID for the event that
 	starts a set piece and analyze the next several plays to determine if
-	the sequence that followed the set piece ended with play stopping for
-	some reason. Such reasons could include a foul being committed, a 
-	player on the attacking team being offsides, the ball ended up out of
-	play, the half/game ended, etc...
+	the sequence that followed the set piece ended with play stopping
+	because of a foul being committed.
 
 	Parameters
 	----------
@@ -519,7 +517,7 @@ def stop_in_play_checker(set_piece_start_id: int) -> list:
 	to_return : list
 		This function returns a list that contains two elements. The first
 		is a Boolean that is True if the sequence ended with play being
-		stopped for some reason and False otherwise. The second is the
+		stopped because of a foul and False otherwise. The second is the
 		event ID of the event that marks the end of the set piece
 		sequence of interest if the first element is True and `-1` if the
 		first element is False.
@@ -542,11 +540,14 @@ def stop_in_play_checker(set_piece_start_id: int) -> list:
 	return to_return
 
 
-def set_piece_sequence_generator(set_piece_start_id: int) -> :
+def offsides_checker(set_piece_start_id: int) -> list:
 	"""
 	Purpose
 	-------
-	The purpose of this function is to
+	The purpose of this function is to take the ID for the event that
+	starts a set piece and analyze the next several plays to determine if
+	the sequence that followed the set piece ended with play stopping 
+	because of a player on the attacking team being offsides.
 
 	Parameters
 	----------
@@ -558,7 +559,142 @@ def set_piece_sequence_generator(set_piece_start_id: int) -> :
 	Returns
 	-------
 	to_return : list
-		This function returns 
+		This function returns a list that contains two elements. The first
+		is a Boolean that is True if the sequence ended with play being
+		stopped because of an offside call and False otherwise. The second
+		is the event ID of the event that marks the end of the set piece
+		sequence of interest if the first element is True and `-1` if the
+		first element is False.
+
+	References
+	----------
+	1. 
+	"""
+	to_return = None
+	# First, let's validate the inputted data.
+	_ = start_id_checker(set_piece_start_id)
+
+	# Next obtain subsequent plays.
+	sequence_df = subsequent_play_generator(
+		set_piece_start_id=set_piece_start_id, num_events=20
+	)
+
+	# Now let us determine if
+
+	return to_return
+
+
+def out_of_play_checker(set_piece_start_id: int) -> list:
+	"""
+	Purpose
+	-------
+	The purpose of this function is to take the ID for the event that
+	starts a set piece and analyze the next several plays to determine if
+	the sequence that followed the set piece ended with play stopping 
+	because of the ball ending up out of play.
+
+	Parameters
+	----------
+	set_piece_start_id : int
+		This argument allows the user to specify the event ID for the
+		event/play that started the set piece whose subsequent sequence
+		of plays we are trying to determine.
+
+	Returns
+	-------
+	to_return : list
+		This function returns a list that contains two elements. The first
+		is a Boolean that is True if the sequence ended with play being
+		stopped because of the ball ending up out of play and False
+		otherwise. The second is the event ID of the event that marks the
+		end of the set piece sequence of interest if the first element is
+		True and `-1` if the first element is False.
+
+	References
+	----------
+	1. 
+	"""
+	to_return = None
+	# First, let's validate the inputted data.
+	_ = start_id_checker(set_piece_start_id)
+
+	# Next obtain subsequent plays.
+	sequence_df = subsequent_play_generator(
+		set_piece_start_id=set_piece_start_id, num_events=20
+	)
+
+	# Now let us determine if
+
+	return to_return
+
+
+def end_of_regulation_checker(set_piece_start_id: int) -> list:
+	"""
+	Purpose
+	-------
+	The purpose of this function is to take the ID for the event that
+	starts a set piece and analyze the next several plays to determine if
+	the sequence that followed the set piece ended with play stopping
+	because of the half/game ending.
+
+	Parameters
+	----------
+	set_piece_start_id : int
+		This argument allows the user to specify the event ID for the
+		event/play that started the set piece whose subsequent sequence
+		of plays we are trying to determine.
+
+	Returns
+	-------
+	to_return : list
+		This function returns a list that contains two elements. The first
+		is a Boolean that is True if the sequence ended with play being
+		stopped because of the half/game ending. and False otherwise. The
+		second is the event ID of the event that marks the end of the set
+		piece sequence of interest if the first element is True and `-1`
+		if the first element is False.
+
+	References
+	----------
+	1. 
+	"""
+	to_return = None
+	# First, let's validate the inputted data.
+	_ = start_id_checker(set_piece_start_id)
+
+	# Next obtain subsequent plays.
+	sequence_df = subsequent_play_generator(
+		set_piece_start_id=set_piece_start_id, num_events=20
+	)
+
+	# Now let us determine if
+
+	return to_return
+
+
+def set_piece_sequence_generator(
+		set_piece_start_id: int) -> pd.DataFrame:
+	"""
+	Purpose
+	-------
+	The purpose of this function is to run all of the tests written above
+	to determine how a particular set piece sequence ended and thus be
+	able to collect the full set of events/plays that make up that set
+	piece sequence of interest.
+
+	Parameters
+	----------
+	set_piece_start_id : int
+		This argument allows the user to specify the event ID for the
+		event/play that started the set piece whose subsequent sequence
+		of plays we are trying to determine.
+
+	Returns
+	-------
+	to_return : Pandas DataFrame
+		This function returns a DataFrame that contains all of the events
+		that make up the set piece sequence that starts with the event
+		specified by the argument `set_piece_start_id`.
 
 	References
 	----------
