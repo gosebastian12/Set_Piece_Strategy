@@ -23,58 +23,16 @@ from shapely.geometry import Polygon, Point
 
 # custom modules
 from src.data import data_loader as dl
+from src.data import common_tasks as ct
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
 RAW_EVENTS_DF = dl.raw_event_data(league_name="all")
-PLYR_DF = df.player_data()
 
 
 ################################
 ### Define Modular Functions ###
 ################################
-def start_id_checker(set_piece_start_id: int) -> None:
-	"""
-	Purpose
-	-------
-	The purpose of this function is to use the 
-
-	Parameters
-	----------
-	set_piece_start_id : int
-		This argument allows the user to specify the event ID for the
-		event/play that started the set piece whose subsequent sequence
-		of plays we are trying to determine.
-
-	Returns
-	-------
-	to_return : 
-		This function returns 
-
-	Raises
-	------
-	AssertionError
-		This type of error is raised when either the user passes in a
-		non-integer ID or a non-positive integer.
-
-	References
-	----------
-	1. https://docs.python.org/3/tutorial/errors.html
-	"""
-	try:
-		assert isinstance(set_piece_start_id, int)
-		assert set_piece_start_id > 0
-	except AssertionError as ass_err:
-		error_msg = "Invalid input to function. The argument \
-		`set_piece_start_id` must be non-zero integer. Received type \
-		`{}` and value `{}`.".format(type(set_piece_start_id), 
-			                         set_piece_start_id)
-
-		print(error_msg)
-		raise ass_err
-
-	pass
-
 def subsequent_play_generator(
 		set_piece_start_id: int, num_events: int) -> pd.DataFrame:
 	"""
@@ -112,8 +70,8 @@ def subsequent_play_generator(
 	"""
 	to_return = None
 	# First, let's validate the inputted data.
-	_ = start_id_checker(set_piece_start_id)
-	_ = start_id_checker(num_events)
+	_ = ct.start_id_checker(set_piece_start_id)
+	_ = ct.start_id_checker(num_events)
 
 	# Next, obtain the specific row from the full dataset that pertains
 	# to the event that starts the set piece. NOTE that we have validated
@@ -188,7 +146,7 @@ def changed_possession_checker(set_piece_start_id: int) -> list:
 	"""
 	interim_to_return = None
 	# First, let's validate the inputted data.
-	_ = start_id_checker(set_piece_start_id)
+	_ = ct.start_id_checker(set_piece_start_id)
 
 	# Next obtain subsequent plays.
 	sequence_df = subsequent_play_generator(
@@ -251,6 +209,13 @@ def changed_possession_checker(set_piece_start_id: int) -> list:
 				except IndexError:
 					interim_to_return = [True, event[-1]]
 				break
+			if {"id":1901} in event[2]:
+				# If the event tracking has noted that there is a counter
+				# attack going on.
+				try:
+					interim_to_return = [True, consec_passes_ids[0]]
+				except IndexError:
+					in
 
 			# Update necessary values.
 			past_event_by_opp = [True, event[9]]
@@ -300,7 +265,7 @@ def attack_reset_checker(set_piece_start_id: int) -> list:
 	"""
 	to_return = None
 	# First, let's validate the inputted data.
-	_ = start_id_checker(set_piece_start_id)
+	_ = ct.start_id_checker(set_piece_start_id)
 
 	# Next obtain subsequent plays.
 	sequence_df = subsequent_play_generator(
@@ -328,9 +293,10 @@ def attack_reset_checker(set_piece_start_id: int) -> list:
 			sub_event_id = event[-2]
 
 			initiating_player_id = event[3]
-			initiating_player_pos = PLYR_DF[
-				PLYR_DF.wyId == initiating_player_id
-			].role.iloc[0].get("code3")
+			initiating_player_pos = ct.player_position_extractor(
+				player_wyscout_id=initiating_player_id,
+				notation_to_return="three"
+			)
 
 			event_field_position = event[4]
 
@@ -419,23 +385,52 @@ def goalie_save_checker(set_piece_start_id: int) -> list:
 	"""
 	to_return = [False, -1]
 	# First, let's validate the inputted data.
-	_ = start_id_checker(set_piece_start_id)
+	_ = ct.start_id_checker(set_piece_start_id)
 
 	# Next obtain subsequent plays.
 	sequence_df = subsequent_play_generator(
 		set_piece_start_id=set_piece_start_id, num_events=20
 	)
 
-	# Now let us determine if the set piece was finished by the goal saving
-	# a shot attempt.
+	# Now let us determine if the set piece was finished by the goalie
+	# saving a shot attempt.
 	save_attempt_checker_series = sequence_df.eventId == 9
-	was_there_a_save = np.any(save_attempt_checker_series)
-	if was_there_a_save:
+	if np.any(save_attempt_checker_series):
 		# If there was a save attempt made in this sequence of plays.
-		row_index_of_save_attempt = np.argwhere(
-			save_attempt_checker_series).flatten()[0]
-		to_return = [True, 
-		             sequence_df.iloc[row_index_of_save_attempt].id]
+		row_indicies_of_save_attempts = np.argwhere(
+			save_attempt_checker_series).flatten().tolist()
+
+		for row_index in row_indicies_of_save_attempts:
+			# Iterate over each instance of a save (shot) attempt. For
+			# each, check to see if the shot was accurate (meaning if the
+			# goalie does not save it, a goal will be scored) and if the
+			# event that immediately followed it was a pass initiated by
+			# the goalie. Both of these conditions passing means that the
+			# shot was in fact saved by the goalie. We opt for this series
+			# of checks because the event tracking data does not make
+			# note of goalie saves when they occur.
+			event_row = sequence_df.iloc[row_index]
+			if {"id":101} in event_row.tags:
+				# If a goal was scored (don't do anything since that is
+				# checked by another function). We are checking for this
+				# first because it will free us from having to do the two
+				# goalie save checks for the instances in which a goal
+				# was scored meaning that right off the bat, we know that
+				# the goalie did not save the shot.
+				pass
+
+			next_event_row = sequence_df.iloc[row_index + 1]
+			next_initiating_player_pos = ct.player_position_extractor(
+				player_wyscout_id=next_event_row.playerId,
+				notation_to_return="two"
+			)
+
+			was_save_checker = [next_initiating_player_pos=="GK",
+			                    {"id":1801} in event_row.tags]
+			elif was_save_checker:
+				# If all of our checks for a successful save attempt
+				# pass.
+				to_return = [True, event_row.id]
 
 	return to_return
 
@@ -472,7 +467,7 @@ def goal_checker(set_piece_start_id: int) -> list:
 	"""
 	to_return = [False, -1]
 	# First, let's validate the inputted data.
-	_ = start_id_checker(set_piece_start_id)
+	_ = ct.start_id_checker(set_piece_start_id)
 
 	# Next obtain subsequent plays.
 	sequence_df = subsequent_play_generator(
@@ -485,8 +480,7 @@ def goal_checker(set_piece_start_id: int) -> list:
 		func=lambda x: {"id":101} in x.tags, 
 		axis="columns"
 	)
-	was_there_a_goal = np.any(goal_checker_series)
-	if was_there_a_goal:
+	if np.any(goal_checker_series):
 		# If there was a save attempt made in this sequence of plays.
 		row_index_of_goal = np.argwhere(
 			goal_checker_series).flatten()[0]
@@ -526,16 +520,24 @@ def foul_checker(set_piece_start_id: int) -> list:
 	----------
 	1. 
 	"""
-	to_return = None
+	to_return = [False, -1]
 	# First, let's validate the inputted data.
-	_ = start_id_checker(set_piece_start_id)
+	_ = ct.start_id_checker(set_piece_start_id)
 
 	# Next obtain subsequent plays.
 	sequence_df = subsequent_play_generator(
 		set_piece_start_id=set_piece_start_id, num_events=20
 	)
 
-	# Now let us determine if
+	# Now let us determine if the set piece sequence of interest was ended
+	# by a foul being committed.
+	foul_checker_series = sequence_df.eventId == 2
+	if np.any(foul_checker_series):
+		# If there was a foul committed in this sequence of plays.
+		row_index_of_foul = np.argwhere(
+			foul_checker_series).flatten()[0]
+		to_return = [True, 
+		             sequence_df.iloc[row_index_of_foul].id]
 
 	return to_return
 
@@ -572,7 +574,7 @@ def offsides_checker(set_piece_start_id: int) -> list:
 	"""
 	to_return = None
 	# First, let's validate the inputted data.
-	_ = start_id_checker(set_piece_start_id)
+	_ = ct.start_id_checker(set_piece_start_id)
 
 	# Next obtain subsequent plays.
 	sequence_df = subsequent_play_generator(
@@ -616,7 +618,7 @@ def out_of_play_checker(set_piece_start_id: int) -> list:
 	"""
 	to_return = None
 	# First, let's validate the inputted data.
-	_ = start_id_checker(set_piece_start_id)
+	_ = ct.start_id_checker(set_piece_start_id)
 
 	# Next obtain subsequent plays.
 	sequence_df = subsequent_play_generator(
@@ -660,7 +662,7 @@ def end_of_regulation_checker(set_piece_start_id: int) -> list:
 	"""
 	to_return = None
 	# First, let's validate the inputted data.
-	_ = start_id_checker(set_piece_start_id)
+	_ = ct.start_id_checker(set_piece_start_id)
 
 	# Next obtain subsequent plays.
 	sequence_df = subsequent_play_generator(
