@@ -25,7 +25,7 @@ from src.data import data_loader as dl
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
-PLYR_DF = df.player_data()
+PLYR_DF = dl.player_data()
 
 
 ################################
