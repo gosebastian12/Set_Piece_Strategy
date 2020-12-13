@@ -13,6 +13,7 @@ in Wyscout API.
 ###################################
 # file access
 import os
+from zipfile import ZipFile
 
 # data manipulation
 from base64 import b64encode
@@ -40,18 +41,18 @@ def authentication_header_generator(
     Parameters
     ----------
     user_name : str
-            This parameter allows the user to specify the user name they have
-            for their Wyscout account.
+        This parameter allows the user to specify the user name they have
+        for their Wyscout account.
     password : str
-            This parameter allows the user to specify the password name they
-            have for their Wyscout account.
+        This parameter allows the user to specify the password name they
+        have for their Wyscout account.
 
     Returns
     -------
     to_return : str
-            This function returns a string of the format
-            "Authorization: Basic {xxxxxx}" where the last part is a
-            base64-encoded version of "{user_name}:{password}".
+        This function returns a string of the format
+        "Authorization: Basic {xxxxxx}" where the last part is a
+        base64-encoded version of "{user_name}:{password}".
 
     References
     ----------
@@ -94,31 +95,31 @@ def raw_event_data(league_name: str) -> pd.DataFrame:
     Parameters
     ----------
     league_name : str
-            This parameter allows the user to specify for which league they
-            would like event tracking data for. Inputs must be one of the
-            following:
-                    1. "england" for EPL data.
-                    2. "france" for Ligue 1 data.
-                    3. "spain" for La Liga data.
-                    4. "italy" for Serie A data.
-                    5. "germany" for Bundesliga data.
-                    6. "euro" for European Championships data.
-                    7. "worldcup" for World Cup data.
-                    8. "all" for all league/competition data.
+        This parameter allows the user to specify for which league they
+        would like event tracking data for. Inputs must be one of the
+        following:
+            1. "england" for EPL data.
+            2. "france" for Ligue 1 data.
+            3. "spain" for La Liga data.
+            4. "italy" for Serie A data.
+            5. "germany" for Bundesliga data.
+            6. "euro" for European Championships data.
+            7. "worldcup" for World Cup data.
+            8. "all" for all league/competition data.
 
     Returns
     -------
     to_return : Pandas DataFrame
-            This function returns a DataFrame that contains all of the desired
-            data that has been loaded in.
+        This function returns a DataFrame that contains all of the desired
+        data that has been loaded in.
 
     Raises
     ------
     ValueError
-            Such an error is raised when the user does not specify one of the
-            accepted values for the `league_name` argument.
+        Such an error is raised when the user does not specify one of the
+        accepted values for the `league_name` argument.
     FileNotFoundError
-            Such an error is raised when the function cannot locate the directory
+        Such an error is raised when the function cannot locate the directory
 
     References
     ----------
@@ -199,16 +200,16 @@ def event_id_mapper(rel_path=None) -> pd.DataFrame:
     Parameters
     ----------
     rel_path : str or NoneType
-            This argument allows the user to specify a relative path from this
-            script to the Event ID Mapper CSV file. Its default value is `None`,
-            then it will default to the relative path that is present when
-            the project repository is cloned.
+        This argument allows the user to specify a relative path from this
+        script to the Event ID Mapper CSV file. Its default value is `None`,
+        then it will default to the relative path that is present when
+        the project repository is cloned.
 
     Returns
     -------
     to_return : Pandas DataFrame
-            This function returns a Pandas DataFrame that contains all of the
-            contents loaded in from the Event ID Mapper CSV.
+        This function returns a Pandas DataFrame that contains all of the
+        contents loaded in from the Event ID Mapper CSV.
     """
     to_return = None
     # First, let's navigate to the appropriate directory.
@@ -241,16 +242,16 @@ def player_data(rel_path=None) -> pd.DataFrame:
     Parameters
     ----------
     rel_path : str or NoneType
-            This argument allows the user to specify a relative path from this
-            script to the Event ID Mapper CSV file. Its default value is `None`,
-            then it will default to the relative path that is present when
-            the project repository is cloned.
+        This argument allows the user to specify a relative path from this
+        script to the Event ID Mapper CSV file. Its default value is `None`,
+        then it will default to the relative path that is present when
+        the project repository is cloned.
 
     Returns
     -------
     to_return : Pandas DataFrame
-            This function returns a Pandas DataFrame that contains all of the
-            contents loaded in from the Event ID Mapper CSV.
+        This function returns a Pandas DataFrame that contains all of the
+        contents loaded in from the players data set.
     """
     to_return = None
     # First, let's navigate to the appropriate directory.
@@ -267,8 +268,114 @@ def player_data(rel_path=None) -> pd.DataFrame:
         raise error_with_dir
 
     # Finally, load in the data with Pandas.
-    mapper_df = pd.read_json("players.json")
-    to_return = mapper_df
+    players_df = pd.read_json("players.json")
+    to_return = players_df
 
     return to_return
     
+
+def matches_data(league_name: str, rel_path=None) -> pd.DataFrame:
+    """
+    Purpose
+    -------
+    The purpose of this function is to provide a quick and easy way to
+    load in the ID mapper file created by Wyscout.
+
+    Parameters
+    ----------
+    league_name : str
+        This parameter allows the user to specify for which league they
+        would like event tracking data for. Inputs must be one of the
+        following:
+            1. "england" for EPL data.
+            2. "france" for Ligue 1 data.
+            3. "spain" for La Liga data.
+            4. "italy" for Serie A data.
+            5. "germany" for Bundesliga data.
+            6. "euro" for European Championships data.
+            7. "worldcup" for World Cup data.
+            8. "all" for all league/competition data.
+    rel_path : str or NoneType
+        This argument allows the user to specify a relative path from this
+        script to the Event ID Mapper CSV file. Its default value is `None`,
+        then it will default to the relative path that is present when
+        the project repository is cloned.
+
+    Returns
+    -------
+    to_return : Pandas DataFrame
+        This function returns a Pandas DataFrame that contains all of the
+        contents loaded in from the matches data set.
+
+    Raises
+    ------
+    ValueError
+        Such an error is raised when the user does not specify one of the
+        accepted values for the `league_name` argument.
+    """
+    to_return = None
+    # First, let's navigate to the appropriate directory.
+    matches_rel_dir = "../../data/raw/" if not rel_path else rel_path
+    matches_dir = os.path.join(SCRIPT_DIR, matches_rel_dir)
+
+    try:
+        os.chdir(matches_dir)
+    except FileNotFoundError as error_with_dir:
+        error_msg = "Data directory {} could not be located. Has the \
+        structure of the cloned repository been modified?".format(matches_dir)
+
+        print(error_msg)
+        raise error_with_dir
+
+    available_leagues = ["england",
+                         "france",
+                         "spain",
+                         "italy",
+                         "germany",
+                         "euro",
+                         "worldcup",
+                         "all"]
+
+    normalized_league_name = "".join(league_name.lower().split())
+    try:
+        # Carry out the test for whether or not the inputted data is
+        # valid.
+        assert normalized_league_name in available_leagues
+    except AssertionError:
+        # If the test fails, raise a `ValueError` and print the appropriate
+        # error message.
+        error_msg = "Inputted data ({}) is not valid. Refer to function\
+        documentation for accepted inputs to the `league_name` \
+        argument.".format(league_name)
+
+        print(error_msg)
+        raise ValueError
+
+    # Finally, load in the data with Pandas.
+    matches_zip_obj = ZipFile("matches.zip", "r")
+    data_file_names = [file.filename for file in matches_zip_obj.filelist]
+
+    league_file_mapper = {"all": data_file_names,
+                          "england": "matches_England.json",
+                          "france": "matches_France.json",
+                          "spain": "matches_Spain.json",
+                          "italy": "matches_Italy.json",
+                          "germany": "matches_Germany.json",
+                          "euro": "matches_European_Championship.json",
+                          "worldcup": "matches_World_Cup.json"}
+    file_to_load = league_file_mapper.get(normalized_league_name)
+
+    if isinstance(file_to_load, list):
+        # If the user is loading every file in the directory.
+        loaded_files = [
+            pd.read_json(matches_zip_obj.open(file)) \
+            for file in file_to_load
+        ]
+        final_df = pd.concat(loaded_files).reset_index(drop=True)
+    else:
+        # If the user is loading a specific file.
+        final_df = pd.read_json(matches_zip_obj.open(file_to_load))
+
+    to_return = final_df
+
+    return to_return

@@ -27,7 +27,7 @@ from src.data import common_tasks as ct
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
-RAW_EVENTS_DF = dl.raw_event_data(league_name="all")
+RAW_EVENTS_DF = dl.raw_event_data(league_name="france")
 
 
 ################################
@@ -44,29 +44,33 @@ def subsequent_play_generator(
     Parameters
     ----------
     set_piece_start_id : int
-            This argument allows the user to specify the event ID for the
-            event/play that started the set piece whose subsequent sequence
-            of plays we are trying to determine.
+        This argument allows the user to specify the event ID for the
+        event/play that started the set piece whose subsequent sequence
+        of plays we are trying to determine.
     num_events : int
-            This argument allows the user to specify the maximum number of events
-            after the beginning of the set piece that the function will return.
-            Note that the function may return fewer than the value of this
-            argument if it runs into events from a different half, match, etc.
+        This argument allows the user to specify the maximum number of events
+        after the beginning of the set piece that the function will return.
+        Note that the function may return fewer than the value of this
+        argument if it runs into events from a different half, match, etc.
 
     Returns
     -------
     to_return : Pandas DataFrame
-            This function returns a Pandas DataFrame that contains all of the
-            plays that immediately followed the beginning of the set piece.
+        This function returns a Pandas DataFrame that contains all of the
+        plays that immediately followed the beginning of the set piece.
 
     Raises
     ------
     AssertionError
-            Such an error will be raised if the function for some reason finds
-            two row instances in the events data set that corresponds to the
-            same event ID. This should not occur however since each instance
-            has a unique event ID; this error serves as a guard against the
-            unlikely scenario of non-unique event ID's.
+        Such an error will be raised if the function for some reason finds
+        two row instances in the events data set that corresponds to the
+        same event ID. This should not occur however since each instance
+        has a unique event ID; this error serves as a guard against the
+        unlikely scenario of non-unique event ID's.
+
+    References
+    ----------
+    1. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.first_valid_index.html
     """
     to_return = None
     # First, let's validate the inputted data.
@@ -77,17 +81,19 @@ def subsequent_play_generator(
     # to the event that starts the set piece. NOTE that we have validated
     # that the `ID` column of this data is comprised of unique values.
     start_set_piece_row = RAW_EVENTS_DF[RAW_EVENTS_DF.id == set_piece_start_id]
+    start_set_piece_index = start_set_piece_row.first_valid_index()
     assert start_set_piece_row.shape[0] == 1
 
     # Now, obtain the rest of the rows that we are interested in analyzing.
-    row_indexes = list(range(start_set_piece_row,
-                             start_set_piece_row + num_events + 1))
+    row_indicies = list(range(start_set_piece_index,
+                             start_set_piece_index + num_events + 1))
 
-    sp_sequece_df = RAW_EVENTS_DF.iloc[row_indexes]
+    sp_sequece_df = RAW_EVENTS_DF.iloc[row_indicies]
 
     # Validate the data you're about to return.
-    half_of_set_piece = start_set_piece_row.matchPeriod
-    match_id_of_set_piece = start_set_piece_row.matchId
+    half_of_set_piece = start_set_piece_row.iloc[0].matchPeriod
+    assert isinstance(half_of_set_piece, str)
+    match_id_of_set_piece = start_set_piece_row.iloc[0].matchId
 
     try:
         assert all(sp_sequece_df.matchPeriod == half_of_set_piece)
@@ -126,18 +132,18 @@ def changed_possession_checker(set_piece_start_id: int) -> list:
     Parameters
     ----------
     set_piece_start_id : int
-            This argument allows the user to specify the event ID for the
-            event/play that started the set piece whose subsequent sequence
-            of plays we are trying to determine.
+        This argument allows the user to specify the event ID for the
+        event/play that started the set piece whose subsequent sequence
+        of plays we are trying to determine.
 
     Returns
     -------
     to_return : list
-            This function returns a list that contains two elements. The first
-            is a Boolean that is True if the sequence ended with possession
-            changing and False otherwise. The second is the event ID of the
-            event that marks the end of the set piece sequence of interest if
-            the first element is True and `-1` if the first element is False.
+        This function returns a list that contains two elements. The first
+        is a Boolean that is True if the sequence ended with possession
+        changing and False otherwise. The second is the event ID of the
+        event that marks the end of the set piece sequence of interest if
+        the first element is True and `-1` if the first element is False.
 
     References
     ----------
@@ -149,9 +155,8 @@ def changed_possession_checker(set_piece_start_id: int) -> list:
 
     # Next obtain subsequent plays.
     sequence_df = subsequent_play_generator(
-        set_piece_start_id=set_piece_start_id, num_events=20
-    )
-
+        set_piece_start_id=set_piece_start_id, num_events=20)
+ 
     # Now determine if the sequence of events that make up the set piece
     # of interest was ended by a change in possession. We check this by
     # determining if either the opposing team has possessed the ball for
@@ -236,18 +241,18 @@ def attack_reset_checker(set_piece_start_id: int) -> list:
     Parameters
     ----------
     set_piece_start_id : int
-            This argument allows the user to specify the event ID for the
-            event/play that started the set piece whose subsequent sequence
-            of plays we are trying to determine.
+        This argument allows the user to specify the event ID for the
+        event/play that started the set piece whose subsequent sequence
+        of plays we are trying to determine.
 
     Returns
     -------
     to_return : list
-            This function returns a list that contains two elements. The first
-            is a Boolean that is True if the sequence ended with the attacking
-            team resetting and False otherwise. The second is the event ID
-            of the event that marks the end of the set piece sequence of
-            interest if the first element is True and `-1` if the first
+        This function returns a list that contains two elements. The first
+        is a Boolean that is True if the sequence ended with the attacking
+        team resetting and False otherwise. The second is the event ID
+        of the event that marks the end of the set piece sequence of
+        interest if the first element is True and `-1` if the first
             element is False.
 
     References
@@ -347,18 +352,18 @@ def goalie_save_checker(set_piece_start_id: int) -> list:
     Parameters
     ----------
     set_piece_start_id : int
-            This argument allows the user to specify the event ID for the
-            event/play that started the set piece whose subsequent sequence
-            of plays we are trying to determine.
+        This argument allows the user to specify the event ID for the
+        event/play that started the set piece whose subsequent sequence
+        of plays we are trying to determine.
 
     Returns
     -------
     to_return : list
-            This function returns a list that contains two elements. The first
-            is a Boolean that is True if the sequence ended with the goalie
-            saving a shot and False otherwise. The second is the event ID of
-            the event that marks the end of the set piece sequence of interest
-            if the first element is True and `-1` if the first element is False.
+        This function returns a list that contains two elements. The first
+        is a Boolean that is True if the sequence ended with the goalie
+        saving a shot and False otherwise. The second is the event ID of
+        the event that marks the end of the set piece sequence of interest
+        if the first element is True and `-1` if the first element is False.
 
     References
     ----------
@@ -429,18 +434,18 @@ def goal_checker(set_piece_start_id: int) -> list:
     Parameters
     ----------
     set_piece_start_id : int
-            This argument allows the user to specify the event ID for the
-            event/play that started the set piece whose subsequent sequence
-            of plays we are trying to determine.
+        This argument allows the user to specify the event ID for the
+        event/play that started the set piece whose subsequent sequence
+        of plays we are trying to determine.
 
     Returns
     -------
     to_return : list
-            This function returns a list that contains two elements. The first
-            is a Boolean that is True if the sequence ended with a goal being
-            scored by the attacking team and False otherwise. The second is
-            the event ID of the event that marks the end of the set piece
-            sequence of interest if the first element is True and `-1` if the
+        This function returns a list that contains two elements. The first
+        is a Boolean that is True if the sequence ended with a goal being
+        scored by the attacking team and False otherwise. The second is
+        the event ID of the event that marks the end of the set piece
+        sequence of interest if the first element is True and `-1` if the
             first element is False.
 
     References
@@ -484,18 +489,18 @@ def foul_checker(set_piece_start_id: int) -> list:
     Parameters
     ----------
     set_piece_start_id : int
-            This argument allows the user to specify the event ID for the
-            event/play that started the set piece whose subsequent sequence
-            of plays we are trying to determine.
+        This argument allows the user to specify the event ID for the
+        event/play that started the set piece whose subsequent sequence
+        of plays we are trying to determine.
 
     Returns
     -------
     to_return : list
-            This function returns a list that contains two elements. The first
-            is a Boolean that is True if the sequence ended with play being
-            stopped because of a foul and False otherwise. The second is the
-            event ID of the event that marks the end of the set piece
-            sequence of interest if the first element is True and `-1` if the
+        This function returns a list that contains two elements. The first
+        is a Boolean that is True if the sequence ended with play being
+        stopped because of a foul and False otherwise. The second is the
+        event ID of the event that marks the end of the set piece
+        sequence of interest if the first element is True and `-1` if the
             first element is False.
 
     References
@@ -536,18 +541,18 @@ def offsides_checker(set_piece_start_id: int) -> list:
     Parameters
     ----------
     set_piece_start_id : int
-            This argument allows the user to specify the event ID for the
-            event/play that started the set piece whose subsequent sequence
-            of plays we are trying to determine.
+        This argument allows the user to specify the event ID for the
+        event/play that started the set piece whose subsequent sequence
+        of plays we are trying to determine.
 
     Returns
     -------
     to_return : list
-            This function returns a list that contains two elements. The first
-            is a Boolean that is True if the sequence ended with play being
-            stopped because of an offside call and False otherwise. The second
-            is the event ID of the event that marks the end of the set piece
-            sequence of interest if the first element is True and `-1` if the
+        This function returns a list that contains two elements. The first
+        is a Boolean that is True if the sequence ended with play being
+        stopped because of an offside call and False otherwise. The second
+        is the event ID of the event that marks the end of the set piece
+        sequence of interest if the first element is True and `-1` if the
             first element is False.
 
     References
@@ -588,18 +593,18 @@ def out_of_play_checker(set_piece_start_id: int) -> list:
     Parameters
     ----------
     set_piece_start_id : int
-            This argument allows the user to specify the event ID for the
-            event/play that started the set piece whose subsequent sequence
-            of plays we are trying to determine.
+        This argument allows the user to specify the event ID for the
+        event/play that started the set piece whose subsequent sequence
+        of plays we are trying to determine.
 
     Returns
     -------
     to_return : list
-            This function returns a list that contains two elements. The first
-            is a Boolean that is True if the sequence ended with play being
-            stopped because of the ball ending up out of play and False
-            otherwise. The second is the event ID of the event that marks the
-            end of the set piece sequence of interest if the first element is
+        This function returns a list that contains two elements. The first
+        is a Boolean that is True if the sequence ended with play being
+        stopped because of the ball ending up out of play and False
+        otherwise. The second is the event ID of the event that marks the
+        end of the set piece sequence of interest if the first element is
             True and `-1` if the first element is False.
 
     References
@@ -640,18 +645,18 @@ def end_of_regulation_checker(set_piece_start_id: int) -> list:
     Parameters
     ----------
     set_piece_start_id : int
-            This argument allows the user to specify the event ID for the
-            event/play that started the set piece whose subsequent sequence
-            of plays we are trying to determine.
+        This argument allows the user to specify the event ID for the
+        event/play that started the set piece whose subsequent sequence
+        of plays we are trying to determine.
 
     Returns
     -------
     to_return : list
-            This function returns a list that contains two elements. The first
-            is a Boolean that is True if the sequence ended with play being
-            stopped because of the half/game ending. and False otherwise. The
-            second is the event ID of the event that marks the end of the set
-            piece sequence of interest if the first element is True and `-1`
+        This function returns a list that contains two elements. The first
+        is a Boolean that is True if the sequence ended with play being
+        stopped because of the half/game ending. and False otherwise. The
+        second is the event ID of the event that marks the end of the set
+        piece sequence of interest if the first element is True and `-1`
             if the first element is False.
 
     References
@@ -706,16 +711,16 @@ def set_piece_sequence_generator(
     Parameters
     ----------
     set_piece_start_id : int
-            This argument allows the user to specify the event ID for the
-            event/play that started the set piece whose subsequent sequence
-            of plays we are trying to determine.
+        This argument allows the user to specify the event ID for the
+        event/play that started the set piece whose subsequent sequence
+        of plays we are trying to determine.
 
     Returns
     -------
     to_return : Pandas DataFrame
-            This function returns a DataFrame that contains all of the events
-            that make up the set piece sequence that starts with the event
-            specified by the argument `set_piece_start_id`.
+        This function returns a DataFrame that contains all of the events
+        that make up the set piece sequence that starts with the event
+        specified by the argument `set_piece_start_id`.
 
     References
     ----------
