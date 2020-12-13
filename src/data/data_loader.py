@@ -25,6 +25,8 @@ SCRIPT_DIR = os.path.dirname(__file__)
 ################################
 ### Define Modular Functions ###
 ################################
+
+
 def authentication_header_generator(
         user_name: str, password: str) -> str:
     """
@@ -272,7 +274,7 @@ def player_data(rel_path=None) -> pd.DataFrame:
     to_return = players_df
 
     return to_return
-    
+
 
 def matches_data(league_name: str, rel_path=None) -> pd.DataFrame:
     """
@@ -368,7 +370,7 @@ def matches_data(league_name: str, rel_path=None) -> pd.DataFrame:
     if isinstance(file_to_load, list):
         # If the user is loading every file in the directory.
         loaded_files = [
-            pd.read_json(matches_zip_obj.open(file)) \
+            pd.read_json(matches_zip_obj.open(file))
             for file in file_to_load
         ]
         final_df = pd.concat(loaded_files).reset_index(drop=True)
