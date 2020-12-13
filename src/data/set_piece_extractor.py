@@ -18,7 +18,7 @@ import os
 # data manipulation
 import pandas as pd
 import numpy as np
-import swifter as swift
+import swifter
 from shapely.geometry import Polygon, Point
 
 # custom modules
@@ -27,7 +27,7 @@ from src.data import common_tasks as ct
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
-RAW_EVENTS_DF = dl.raw_event_data(league_name="france")
+RAW_EVENTS_DF = dl.raw_event_data(league_name="all")
 
 
 ################################
@@ -115,12 +115,24 @@ def subsequent_play_generator(
             interim_sequence_df.matchId == match_id_of_set_piece
         ]
 
+    try:
+    	assert np.all(np.diff(final_sequence_df.eventSec) >= 0)
+    except AssertionError:
+    	# If for some reason the events are not in order.
+    	err_msg = "The events that immediately followed the set piece \
+    	initiating event in the data set were found to be out of order. \
+    	Have you modified the data in some way?"
+
+    	print(err_msg)
+    	raise AssertionError
+
     to_return = final_sequence_df.reset_index(drop=True)
 
     return to_return
 
 
-def changed_possession_checker(set_piece_start_id: int) -> list:
+def changed_possession_checker(
+		set_piece_start_id: int, sequence_to_use=None) -> list:
     """
     Purpose
     -------
@@ -135,6 +147,12 @@ def changed_possession_checker(set_piece_start_id: int) -> list:
         This argument allows the user to specify the event ID for the
         event/play that started the set piece whose subsequent sequence
         of plays we are trying to determine.
+    sequence_to_use : Pandas DataFrame or None
+    	This argument allows the user to specify a particular sequence of
+    	events to use when testing to see when and how the set piece
+    	sequence it contains ended. Its default value is `None`. When set
+    	to `None`, the function will utilize the `subsequent_play_generator`
+    	function with the user-value for the `set_piece_start_id` argument.
 
     Returns
     -------
@@ -145,17 +163,37 @@ def changed_possession_checker(set_piece_start_id: int) -> list:
         event that marks the end of the set piece sequence of interest if
         the first element is True and `-1` if the first element is False.
 
-    References
-    ----------
-    1.
+    Raises
+    ------
+    ValueError
+    	This error is raised when the user passes
     """
     to_return = [False, -1]
     # First, let's validate the inputted data.
     ct.id_checker(set_piece_start_id)
 
     # Next obtain subsequent plays.
-    sequence_df = subsequent_play_generator(
-        set_piece_start_id=set_piece_start_id, num_events=20)
+    if isinstance(sequence_to_use, type(None)):
+    	# If the user did NOT specify a particular set piece sequence to
+    	# use.
+    	sequence_df = subsequent_play_generator(
+    		set_piece_start_id=set_piece_start_id, num_events=20
+    	)
+    else:
+    	# If the user DID specify a particular set piece sequence to
+    	# use.
+    	try:
+    		assert isinstance(sequence_to_use, pd.DataFrame)
+    	except AssertionError:
+    		err_msg = "The data-type of the passed-in value for the \
+    		`sequence_to_use` argument is invalid. It must be either `None` \
+    		or a Pandas DataFrame. Received type: \
+    		`{}`.".format(type(sequence_to_use))
+
+    		print(err_msg)
+    		raise ValueError
+
+    	sequence_df = sequence_to_use
  
     # Now determine if the sequence of events that make up the set piece
     # of interest was ended by a change in possession. We check this by
@@ -186,9 +224,8 @@ def changed_possession_checker(set_piece_start_id: int) -> list:
                 opp_poss_cons_time += event[9] - past_event_by_opp[1]
                 num_consecutive_opp_passes += 1
 
-                event_field_position = event[4]
-                start_x = event_field_position[0].get("x")
-                end_x = event_field_position[1].get("x")
+            start_x = event[4][0].get("x")
+            end_x = event[4][1].get("x")
 
             # Threshold checks
             if num_consecutive_opp_passes > consec_passes_threshold:
@@ -228,7 +265,8 @@ def changed_possession_checker(set_piece_start_id: int) -> list:
     return to_return
 
 
-def attack_reset_checker(set_piece_start_id: int) -> list:
+def attack_reset_checker(
+		set_piece_start_id: int, sequence_to_use=None) -> list:
     """
     Purpose
     -------
@@ -244,6 +282,12 @@ def attack_reset_checker(set_piece_start_id: int) -> list:
         This argument allows the user to specify the event ID for the
         event/play that started the set piece whose subsequent sequence
         of plays we are trying to determine.
+    sequence_to_use : Pandas DataFrame or None
+    	This argument allows the user to specify a particular sequence of
+    	events to use when testing to see when and how the set piece
+    	sequence it contains ended. Its default value is `None`. When set
+    	to `None`, the function will utilize the `subsequent_play_generator`
+    	function with the user-value for the `set_piece_start_id` argument.
 
     Returns
     -------
@@ -264,9 +308,27 @@ def attack_reset_checker(set_piece_start_id: int) -> list:
     ct.id_checker(set_piece_start_id)
 
     # Next obtain subsequent plays.
-    sequence_df = subsequent_play_generator(
-        set_piece_start_id=set_piece_start_id, num_events=20
-    )
+    if isinstance(sequence_to_use, type(None)):
+    	# If the user did NOT specify a particular set piece sequence to
+    	# use.
+    	sequence_df = subsequent_play_generator(
+    		set_piece_start_id=set_piece_start_id, num_events=20
+    	)
+    else:
+    	# If the user DID specify a particular set piece sequence to
+    	# use.
+    	try:
+    		assert isinstance(sequence_to_use, pd.DataFrame)
+    	except AssertionError:
+    		err_msg = "The data-type of the passed-in value for the \
+    		`sequence_to_use` argument is invalid. It must be either `None` \
+    		or a Pandas DataFrame. Received type: \
+    		`{}`.".format(type(sequence_to_use))
+
+    		print(err_msg)
+    		raise ValueError
+
+    	sequence_df = sequence_to_use
 
     # Now let us determine if the set piece sequence ended with the attacking
     # team resetting their attack.
@@ -340,7 +402,8 @@ def attack_reset_checker(set_piece_start_id: int) -> list:
     return to_return
 
 
-def goalie_save_checker(set_piece_start_id: int) -> list:
+def goalie_save_checker(
+		set_piece_start_id: int, sequence_to_use=None) -> list:
     """
     Purpose
     -------
@@ -355,6 +418,12 @@ def goalie_save_checker(set_piece_start_id: int) -> list:
         This argument allows the user to specify the event ID for the
         event/play that started the set piece whose subsequent sequence
         of plays we are trying to determine.
+    sequence_to_use : Pandas DataFrame or None
+    	This argument allows the user to specify a particular sequence of
+    	events to use when testing to see when and how the set piece
+    	sequence it contains ended. Its default value is `None`. When set
+    	to `None`, the function will utilize the `subsequent_play_generator`
+    	function with the user-value for the `set_piece_start_id` argument.
 
     Returns
     -------
@@ -374,9 +443,27 @@ def goalie_save_checker(set_piece_start_id: int) -> list:
     ct.id_checker(set_piece_start_id)
 
     # Next obtain subsequent plays.
-    sequence_df = subsequent_play_generator(
-        set_piece_start_id=set_piece_start_id, num_events=20
-    )
+    if isinstance(sequence_to_use, type(None)):
+    	# If the user did NOT specify a particular set piece sequence to
+    	# use.
+    	sequence_df = subsequent_play_generator(
+    		set_piece_start_id=set_piece_start_id, num_events=20
+    	)
+    else:
+    	# If the user DID specify a particular set piece sequence to
+    	# use.
+    	try:
+    		assert isinstance(sequence_to_use, pd.DataFrame)
+    	except AssertionError:
+    		err_msg = "The data-type of the passed-in value for the \
+    		`sequence_to_use` argument is invalid. It must be either `None` \
+    		or a Pandas DataFrame. Received type: \
+    		`{}`.".format(type(sequence_to_use))
+
+    		print(err_msg)
+    		raise ValueError
+
+    	sequence_df = sequence_to_use
 
     # Now let us determine if the set piece was finished by the goalie
     # saving a shot attempt.
@@ -422,7 +509,8 @@ def goalie_save_checker(set_piece_start_id: int) -> list:
     return to_return
 
 
-def goal_checker(set_piece_start_id: int) -> list:
+def goal_checker(
+		set_piece_start_id: int, sequence_to_use=None) -> list:
     """
     Purpose
     -------
@@ -437,6 +525,12 @@ def goal_checker(set_piece_start_id: int) -> list:
         This argument allows the user to specify the event ID for the
         event/play that started the set piece whose subsequent sequence
         of plays we are trying to determine.
+    sequence_to_use : Pandas DataFrame or None
+    	This argument allows the user to specify a particular sequence of
+    	events to use when testing to see when and how the set piece
+    	sequence it contains ended. Its default value is `None`. When set
+    	to `None`, the function will utilize the `subsequent_play_generator`
+    	function with the user-value for the `set_piece_start_id` argument.
 
     Returns
     -------
@@ -457,13 +551,31 @@ def goal_checker(set_piece_start_id: int) -> list:
     ct.id_checker(set_piece_start_id)
 
     # Next obtain subsequent plays.
-    sequence_df = subsequent_play_generator(
-        set_piece_start_id=set_piece_start_id, num_events=20
-    )
+    if isinstance(sequence_to_use, type(None)):
+    	# If the user did NOT specify a particular set piece sequence to
+    	# use.
+    	sequence_df = subsequent_play_generator(
+    		set_piece_start_id=set_piece_start_id, num_events=20
+    	)
+    else:
+    	# If the user DID specify a particular set piece sequence to
+    	# use.
+    	try:
+    		assert isinstance(sequence_to_use, pd.DataFrame)
+    	except AssertionError:
+    		err_msg = "The data-type of the passed-in value for the \
+    		`sequence_to_use` argument is invalid. It must be either `None` \
+    		or a Pandas DataFrame. Received type: \
+    		`{}`.".format(type(sequence_to_use))
+
+    		print(err_msg)
+    		raise ValueError
+
+    	sequence_df = sequence_to_use
 
     # Now let us determine if the set piece sequence of interest was ended
     # by a goal being scored.
-    goal_checker_series = sequence_df.swift.apply(
+    goal_checker_series = sequence_df.swifter.apply(
         func=lambda x: {"id": 101} in x.tags,
         axis="columns"
     )
@@ -477,7 +589,8 @@ def goal_checker(set_piece_start_id: int) -> list:
     return to_return
 
 
-def foul_checker(set_piece_start_id: int) -> list:
+def foul_checker(
+		set_piece_start_id: int, sequence_to_use=None) -> list:
     """
     Purpose
     -------
@@ -492,6 +605,12 @@ def foul_checker(set_piece_start_id: int) -> list:
         This argument allows the user to specify the event ID for the
         event/play that started the set piece whose subsequent sequence
         of plays we are trying to determine.
+    sequence_to_use : Pandas DataFrame or None
+    	This argument allows the user to specify a particular sequence of
+    	events to use when testing to see when and how the set piece
+    	sequence it contains ended. Its default value is `None`. When set
+    	to `None`, the function will utilize the `subsequent_play_generator`
+    	function with the user-value for the `set_piece_start_id` argument.
 
     Returns
     -------
@@ -512,9 +631,27 @@ def foul_checker(set_piece_start_id: int) -> list:
     ct.id_checker(set_piece_start_id)
 
     # Next obtain subsequent plays.
-    sequence_df = subsequent_play_generator(
-        set_piece_start_id=set_piece_start_id, num_events=20
-    )
+    if isinstance(sequence_to_use, type(None)):
+    	# If the user did NOT specify a particular set piece sequence to
+    	# use.
+    	sequence_df = subsequent_play_generator(
+    		set_piece_start_id=set_piece_start_id, num_events=20
+    	)
+    else:
+    	# If the user DID specify a particular set piece sequence to
+    	# use.
+    	try:
+    		assert isinstance(sequence_to_use, pd.DataFrame)
+    	except AssertionError:
+    		err_msg = "The data-type of the passed-in value for the \
+    		`sequence_to_use` argument is invalid. It must be either `None` \
+    		or a Pandas DataFrame. Received type: \
+    		`{}`.".format(type(sequence_to_use))
+
+    		print(err_msg)
+    		raise ValueError
+
+    	sequence_df = sequence_to_use
 
     # Now let us determine if the set piece sequence of interest was ended
     # by a foul being committed.
@@ -529,7 +666,8 @@ def foul_checker(set_piece_start_id: int) -> list:
     return to_return
 
 
-def offsides_checker(set_piece_start_id: int) -> list:
+def offsides_checker(
+		set_piece_start_id: int, sequence_to_use=None) -> list:
     """
     Purpose
     -------
@@ -544,6 +682,12 @@ def offsides_checker(set_piece_start_id: int) -> list:
         This argument allows the user to specify the event ID for the
         event/play that started the set piece whose subsequent sequence
         of plays we are trying to determine.
+    sequence_to_use : Pandas DataFrame or None
+    	This argument allows the user to specify a particular sequence of
+    	events to use when testing to see when and how the set piece
+    	sequence it contains ended. Its default value is `None`. When set
+    	to `None`, the function will utilize the `subsequent_play_generator`
+    	function with the user-value for the `set_piece_start_id` argument.
 
     Returns
     -------
@@ -553,7 +697,7 @@ def offsides_checker(set_piece_start_id: int) -> list:
         stopped because of an offside call and False otherwise. The second
         is the event ID of the event that marks the end of the set piece
         sequence of interest if the first element is True and `-1` if the
-            first element is False.
+        first element is False.
 
     References
     ----------
@@ -564,9 +708,27 @@ def offsides_checker(set_piece_start_id: int) -> list:
     ct.id_checker(set_piece_start_id)
 
     # Next obtain subsequent plays.
-    sequence_df = subsequent_play_generator(
-        set_piece_start_id=set_piece_start_id, num_events=20
-    )
+    if isinstance(sequence_to_use, type(None)):
+    	# If the user did NOT specify a particular set piece sequence to
+    	# use.
+    	sequence_df = subsequent_play_generator(
+    		set_piece_start_id=set_piece_start_id, num_events=20
+    	)
+    else:
+    	# If the user DID specify a particular set piece sequence to
+    	# use.
+    	try:
+    		assert isinstance(sequence_to_use, pd.DataFrame)
+    	except AssertionError:
+    		err_msg = "The data-type of the passed-in value for the \
+    		`sequence_to_use` argument is invalid. It must be either `None` \
+    		or a Pandas DataFrame. Received type: \
+    		`{}`.".format(type(sequence_to_use))
+
+    		print(err_msg)
+    		raise ValueError
+
+    	sequence_df = sequence_to_use
 
     # Now let us determine if the set piece sequence ended because of an
     # offsides call.
@@ -581,7 +743,8 @@ def offsides_checker(set_piece_start_id: int) -> list:
     return to_return
 
 
-def out_of_play_checker(set_piece_start_id: int) -> list:
+def out_of_play_checker(
+		set_piece_start_id: int, sequence_to_use=None) -> list:
     """
     Purpose
     -------
@@ -596,6 +759,12 @@ def out_of_play_checker(set_piece_start_id: int) -> list:
         This argument allows the user to specify the event ID for the
         event/play that started the set piece whose subsequent sequence
         of plays we are trying to determine.
+    sequence_to_use : Pandas DataFrame or None
+    	This argument allows the user to specify a particular sequence of
+    	events to use when testing to see when and how the set piece
+    	sequence it contains ended. Its default value is `None`. When set
+    	to `None`, the function will utilize the `subsequent_play_generator`
+    	function with the user-value for the `set_piece_start_id` argument.
 
     Returns
     -------
@@ -611,14 +780,32 @@ def out_of_play_checker(set_piece_start_id: int) -> list:
     ----------
     1.
     """
-    to_return = None
+    to_return = [False, -1]
     # First, let's validate the inputted data.
     ct.id_checker(set_piece_start_id)
 
     # Next obtain subsequent plays.
-    sequence_df = subsequent_play_generator(
-        set_piece_start_id=set_piece_start_id, num_events=20
-    )
+    if isinstance(sequence_to_use, type(None)):
+    	# If the user did NOT specify a particular set piece sequence to
+    	# use.
+    	sequence_df = subsequent_play_generator(
+    		set_piece_start_id=set_piece_start_id, num_events=20
+    	)
+    else:
+    	# If the user DID specify a particular set piece sequence to
+    	# use.
+    	try:
+    		assert isinstance(sequence_to_use, pd.DataFrame)
+    	except AssertionError:
+    		err_msg = "The data-type of the passed-in value for the \
+    		`sequence_to_use` argument is invalid. It must be either `None` \
+    		or a Pandas DataFrame. Received type: \
+    		`{}`.".format(type(sequence_to_use))
+
+    		print(err_msg)
+    		raise ValueError
+
+    	sequence_df = sequence_to_use
 
     # Now let us determine if the set piece sequence ended because of the
     # ball ending up out of bounds.
@@ -633,7 +820,8 @@ def out_of_play_checker(set_piece_start_id: int) -> list:
     return to_return
 
 
-def end_of_regulation_checker(set_piece_start_id: int) -> list:
+def end_of_regulation_checker(
+		set_piece_start_id: int, sequence_to_use=None) -> list:
     """
     Purpose
     -------
@@ -648,6 +836,12 @@ def end_of_regulation_checker(set_piece_start_id: int) -> list:
         This argument allows the user to specify the event ID for the
         event/play that started the set piece whose subsequent sequence
         of plays we are trying to determine.
+    sequence_to_use : Pandas DataFrame or None
+    	This argument allows the user to specify a particular sequence of
+    	events to use when testing to see when and how the set piece
+    	sequence it contains ended. Its default value is `None`. When set
+    	to `None`, the function will utilize the `subsequent_play_generator`
+    	function with the user-value for the `set_piece_start_id` argument.
 
     Returns
     -------
@@ -668,9 +862,27 @@ def end_of_regulation_checker(set_piece_start_id: int) -> list:
     ct.id_checker(set_piece_start_id)
 
     # Next obtain subsequent plays.
-    sequence_df = subsequent_play_generator(
-        set_piece_start_id=set_piece_start_id, num_events=20
-    )
+    if isinstance(sequence_to_use, type(None)):
+    	# If the user did NOT specify a particular set piece sequence to
+    	# use.
+    	sequence_df = subsequent_play_generator(
+    		set_piece_start_id=set_piece_start_id, num_events=20
+    	)
+    else:
+    	# If the user DID specify a particular set piece sequence to
+    	# use.
+    	try:
+    		assert isinstance(sequence_to_use, pd.DataFrame)
+    	except AssertionError:
+    		err_msg = "The data-type of the passed-in value for the \
+    		`sequence_to_use` argument is invalid. It must be either `None` \
+    		or a Pandas DataFrame. Received type: \
+    		`{}`.".format(type(sequence_to_use))
+
+    		print(err_msg)
+    		raise ValueError
+
+    	sequence_df = sequence_to_use
 
     # Now let us determine if the set piece sequence ended because of the
     # half or match ending.
@@ -699,7 +911,7 @@ def end_of_regulation_checker(set_piece_start_id: int) -> list:
 
 
 def set_piece_sequence_generator(
-        set_piece_start_id: int) -> pd.DataFrame:
+		set_piece_start_id: int) -> pd.DataFrame:
     """
     Purpose
     -------
@@ -722,12 +934,67 @@ def set_piece_sequence_generator(
         that make up the set piece sequence that starts with the event
         specified by the argument `set_piece_start_id`.
 
-    References
-    ----------
-    1.
+    Raises
+    ------
+    AssertionError
+    	This error is raised when the function determines that none of
+    	the tests ran to determine when and why the set piece sequence of
+    	interest ended pass. When this error is raised, the ID
+    	corresponding to the start of the set piece sequence is printed
+    	out for debugging purposes.
     """
     to_return = None
     # First, validate the input data.
     ct.id_checker(set_piece_start_id)
+
+    # Next, run all of the tests to see how and when the set piece sequence
+    # ended.
+    sequence_df = subsequent_play_generator(
+    	set_piece_start_id=set_piece_start_id, num_events=20
+    )
+    sequence_tests = [
+    	changed_possession_checker(set_piece_start_id, sequence_df),
+    	attack_reset_checker(set_piece_start_id, sequence_df),
+    	goalie_save_checker(set_piece_start_id, sequence_df),
+    	goal_checker(set_piece_start_id, sequence_df),
+    	foul_checker(set_piece_start_id, sequence_df),
+    	offsides_checker(set_piece_start_id, sequence_df),
+    	out_of_play_checker(set_piece_start_id, sequence_df),
+    	end_of_regulation_checker(set_piece_start_id, sequence_df)
+    ]
+
+    # Now we must investigate the results of the checks
+    results_list = [test[0] for test in sequence_tests]
+    ids_list = [test[1] for test in sequence_tests]
+
+    try:
+    	# It must be true that at least one of the test returned true.
+    	assert any(results_list)
+    except AssertionError as ass_err:
+    	# If none of the test passed, we must let the user know.
+    	err_msg = "While running all of the tests to figure out when and \
+    	where the set piece sequence of interest ended, it was determined \
+    	that none of those tests passed. The ID for the event that started \
+    	this set piece sequence is `{}`.".format(start_set_piece_index)
+
+    	print(err_msg)
+    	raise ass_err
+
+    which_test_passed = np.argwhere(results_list).flatten()[0]
+    last_row_id = ids_list[which_test_passed]
+    index_of_passed_test = sequence_df[
+    	sequence_df.id == last_row_id
+    ].first_valid_index()
+
+    sequence_row_indicies = list(range(0, index_of_passed_test + 1, 1))
+    final_sequence_df = sequence_df.iloc[sequence_row_indicies]
+
+    # Validate and return result.
+    assert final_sequence_df.iloc[-1].id == ids_list[which_test_passed]
+    assert final_sequence_df.shape[0] <= sequence_df.shape[0]
+    assert final_sequence_df.shape[1] == sequence_df.shape[1]
+    assert np.all(np.diff(final_sequence_df.eventSec) >= 0)
+
+    to_return = final_sequence_df
 
     return to_return
