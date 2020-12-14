@@ -314,6 +314,10 @@ def matches_data(league_name: str, rel_path=None) -> pd.DataFrame:
     ValueError
         Such an error is raised when the user does not specify one of the
         accepted values for the `league_name` argument.
+
+    References
+    ----------
+    1. https://discuss.analyticsvidhya.com/t/how-to-read-zip-file-directly-in-python/1659
     """
     to_return = None
     # First, let's navigate to the appropriate directory.

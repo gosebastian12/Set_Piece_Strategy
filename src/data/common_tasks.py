@@ -16,6 +16,9 @@ own script.
 # file access
 import os
 
+# data manipulation
+import numpy
+
 # custom modules
 from src.data import data_loader as dl
 
@@ -59,7 +62,16 @@ def id_checker(id_to_check: int) -> None:
     1. https://docs.python.org/3/tutorial/errors.html
     """
     try:
-        assert isinstance(id_to_check, int)
+        integer_check = [isinstance(id_to_check, int),
+                         isinstance(id_to_check, numpy.int),
+                         isinstance(id_to_check, numpy.int0),
+                         isinstance(id_to_check, numpy.int8),
+                         isinstance(id_to_check, numpy.int16),
+                         isinstance(id_to_check, numpy.int32),
+                         isinstance(id_to_check, numpy.int64),
+                         isinstance(id_to_check, numpy.int_),
+                         isinstance(id_to_check, numpy.integer)]
+        assert any(integer_check)
         assert id_to_check > 0
     except AssertionError as ass_err:
         error_msg = "Invalid input to function. The argument passed in\
@@ -140,9 +152,15 @@ def player_position_extractor(
                        "full": "name"}
     code_to_use = notation_mapper.get("normed_notation")
 
-    player_position = PLYR_DF[
-        PLYR_DF.wyId == player_wyscout_id
-    ].role.iloc[0].get(code_to_use)
+    player_row = PLYR_DF[PLYR_DF.wyId == player_wyscout_id]
+    try:
+        assert player_row.shape[0] == 1
+    except AssertionError:
+        print(player_wyscout_id)
+        print(player_row)
+        raise AssertionError
+
+    player_position = player_row.role.iloc[0].get(code_to_use)
 
     to_return = player_position
     return to_return
