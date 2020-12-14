@@ -59,7 +59,7 @@ def checker_function_set_up(
     Returns
     -------
     to_return : Pandas DataFrame
-        This function returns a Pandas DataFrame that specifies the 
+        This function returns a Pandas DataFrame that specifies the
         collection of events that will be investigated to determine a set
         piece sequence.
 
@@ -99,6 +99,7 @@ def checker_function_set_up(
 
     to_return = sequence_df
     return to_return
+
 
 def changed_possession_checker(
         set_piece_start_id: int, sequence_to_use=None) -> list:
@@ -142,8 +143,6 @@ def changed_possession_checker(
     # determining if either the opposing team has possessed the ball for
     # an extended period of time, for an extended number of plays, or if
     # they have possession deep in their territory.
-    beginning_row = sequence_df.iloc[0]
-
     opp_poss_time_threshold = 15     # measured in seconds.
     opp_poss_cons_time = 0           # measured in seconds.
 
@@ -154,7 +153,7 @@ def changed_possession_checker(
 
     for event in sequence_df.to_numpy().tolist()[1::]:
         # Iterate over each event.
-        if event[7] != beginning_row.teamId:
+        if event[7] != sequence_df.iloc[0].teamId:
             # If the opposing team is initiating this event. Notice how
             # we have taken advantage of the fact that the `teamID` entry
             # is always in the 8th column of the data set.
@@ -171,23 +170,22 @@ def changed_possession_checker(
 
             # Threshold checks
             checks_list = [
-            	num_consecutive_opp_passes > consec_passes_threshold,
-            	opp_poss_cons_time >= opp_poss_time_threshold,
-            	any([start_x > 50, end_x > 50]),
-            	{"id": 1901} in event[2]
+                num_consecutive_opp_passes > consec_passes_threshold,
+                opp_poss_cons_time >= opp_poss_time_threshold,
+                any([start_x > 50, end_x > 50]),
+                {"id": 1901} in event[2]
             ]
             if any(checks_list):
                 try:
-                	first_consec_pass_id = consec_passes_ids[0] 
-                	first_cp_row_index = np.argwhere(
-                		(sequence_df.id == first_consec_pass_id).to_numpy()
-                	).flatten()[0]
+                    first_cp_row_index = np.argwhere(
+                        (sequence_df.id == consec_passes_ids[0]).to_numpy()
+                    ).flatten()[0]
 
-                	to_return = [
-                		True, sequence_df.iloc[first_cp_row_index - 1].id
-                	]
+                    to_return = [
+                        True, sequence_df.iloc[first_cp_row_index - 1].id
+                    ]
                 except IndexError:
-                	to_return = [True, event[-1]]
+                    to_return = [True, event[-1]]
                 break
 
             # Update necessary values.
@@ -684,7 +682,7 @@ def end_of_regulation_checker(
 
 
 def effective_clearance_checker(
-    set_piece_start_id: int, sequence_to_use=None) -> list:
+        set_piece_start_id: int, sequence_to_use=None) -> list:
     """
     Purpose
     -------
@@ -733,7 +731,7 @@ def effective_clearance_checker(
     sequence_df = checker_function_set_up(set_piece_start_id,
                                           sequence_to_use)
 
-    # Next, see if the set piece sequence ended with an effective 
+    # Next, see if the set piece sequence ended with an effective
     # clearance.
     clearance_checker_arr = (sequence_df.subEventId == 71).to_numpy()
     if any(clearance_checker_arr):
@@ -750,8 +748,8 @@ def effective_clearance_checker(
             start_pos_dict = clearance_row.positions[0]
             end_pos_dict = clearance_row.positions[1]
 
-            start_pos_arr = np.array(list(start_pos_dict.value()))
-            end_pos_arr = np.array(list(end_pos_dict.value()))
+            start_pos_arr = np.array(list(start_pos_dict.values()))
+            end_pos_arr = np.array(list(end_pos_dict.values()))
 
             lateral_pos_delta = end_pos_dict.get("x") - start_pos_dict.get("x")
             total_pos_delta = np.linalg.norm(end_pos_arr - start_pos_arr)

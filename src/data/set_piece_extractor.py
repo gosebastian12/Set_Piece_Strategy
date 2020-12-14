@@ -38,16 +38,16 @@ def set_piece_initating_events_extractor(
         type_to_return="list", events_data=FINAL_EVENTS_DF):
     """
     Purpose
-	-------
-	The purpose of this function is to comb through the full event
-	tracking data set and find the instances that corresponds to the
-	beginning of set piece sequences to return to the user.
+        -------
+        The purpose of this function is to comb through the full event
+        tracking data set and find the instances that corresponds to the
+        beginning of set piece sequences to return to the user.
 
-	Parameters
-	----------
-	type_to_return : list
-	    This argument allows the user to specify how the function will
-	    return its result. The available options are:
+        Parameters
+        ----------
+        type_to_return : list
+            This argument allows the user to specify how the function will
+            return its result. The available options are:
             1. "list" which will result in the function giving the IDs
                for all of the events that initiate a set piece sequence.
             2. "dataframe" which will result in the function returning
@@ -55,26 +55,26 @@ def set_piece_initating_events_extractor(
                that starts a set piece. Thus, this option allows access
                to the rest of the information associated with each event.
     The default value for this argument is `"list"`.
-	events_data : Pandas DataFrame
-	    This argument allows the user to specify the data set to look for
-	    set piece sequence initiating events. Its default value is all of
-	    events that we have logging data for.
+        events_data : Pandas DataFrame
+            This argument allows the user to specify the data set to look for
+            set piece sequence initiating events. Its default value is all of
+            events that we have logging data for.
 
-	Returns
-	-------
-	to_return : list or Pandas DataFrame
-	    This function returns either a list or Pandas DataFrame (which is
-	    controlled by the argument `type_to_return`) that specifies all
-	    of the events in the specified dataset (see the `events_data`
-	    argument) that correspond to the beginning of set piece sequences.
+        Returns
+        -------
+        to_return : list or Pandas DataFrame
+            This function returns either a list or Pandas DataFrame (which is
+            controlled by the argument `type_to_return`) that specifies all
+            of the events in the specified dataset (see the `events_data`
+            argument) that correspond to the beginning of set piece sequences.
 
-	Raises
-	------
-	ValueError
-	    This error is raised when the value and/or type of the passed-in
-	    values for `type_to_return` and `events_data` respectively are
-	    not correct. See the Parameters section for what are accepted values
-	    and types for these arguments.
+        Raises
+        ------
+        ValueError
+            This error is raised when the value and/or type of the passed-in
+            values for `type_to_return` and `events_data` respectively are
+            not correct. See the Parameters section for what are accepted values
+            and types for these arguments.
     """
     to_return = None
     # First, validate the input data.
@@ -158,7 +158,7 @@ def subsequent_play_generator(
     # to the event that starts the set piece. NOTE that we have validated
     # that the `ID` column of this data is comprised of unique values.
     start_sp_row_index = np.argwhere(
-    	(FINAL_EVENTS_DF.id == set_piece_start_id).to_numpy()
+        (FINAL_EVENTS_DF.id == set_piece_start_id).to_numpy()
     ).flatten()[0]
     start_set_piece_row = FINAL_EVENTS_DF.iloc[start_sp_row_index]
     assert isinstance(start_set_piece_row, pd.Series)
@@ -263,7 +263,8 @@ def set_piece_sequence_generator(
         check.foul_checker(set_piece_start_id, sequence_df),
         check.offsides_checker(set_piece_start_id, sequence_df),
         check.out_of_play_checker(set_piece_start_id, sequence_df),
-        check.end_of_regulation_checker(set_piece_start_id, sequence_df)
+        check.end_of_regulation_checker(set_piece_start_id, sequence_df),
+        check.effective_clearance_checker(set_piece_start_id, sequence_df)
     ]
 
     # Now we must investigate the results of the checks
@@ -304,16 +305,16 @@ def set_piece_sequence_generator(
 
 
 def set_piece_sequences_compiler(
-		initiating_events=None) -> pd.DataFrame:
-	"""
-	Purpose
-    -------
-    The purpose of this function is to take all of the IDs that correspond
-    to the beginning of set piece sequences of interest and return the
+        initiating_events=None) -> pd.DataFrame:
+    """
+    Purpose
+	-------
+	The purpose of this function is to take all of the IDs that correspond
+	to the beginning of set piece sequences of interest and return the
 
-    Parameters
-    ----------
-    initiating_events: Pandas DataFrame or None
+	Parameters
+	----------
+	initiating_events: Pandas DataFrame or None
     	This argument allows the user to specify which initiating events
     	to use when compiling the data set of set piece sequences. Its
     	default value is None which results in this function calling
@@ -322,44 +323,43 @@ def set_piece_sequences_compiler(
     	specify a different collection of initiating events with this
     	argument.
 
-    Returns
-    -------
-    to_return : Pandas DataFrame
+	Returns
+	-------
+	to_return : Pandas DataFrame
     	This function returns a Pandas DataFrame that contains all of
     	the set piece sequences that it compiled. While making this
     	collection of sequences, the function assigns custom IDs for each
     	set piece sequence it finds. These IDs can be found in the new
     	column `sequence_id`.
 
-    References
-    ----------
-    1. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
-    2. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rename.html
-	"""
-	to_return = None
-	# First, set the necessary variables using the settings specified by
-	# the user.
-	if isinstance(initiating_events, type(None)):
-		# If the user has left the `initiating_events` to its
-		# default value.
-		initiating_event_ids = set_piece_initating_events_extractor()
-	else:
-		initiating_event_ids = initiating_events.id.to_numpy().tolist()
+	References
+	----------
+	1. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
+	2. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rename.html
+    """
+    to_return = None
+    # First, set the necessary variables using the settings specified by
+    # the user.
+    if isinstance(initiating_events, type(None)):
+        # If the user has left the `initiating_events` to its
+        # default value.
+        initiating_event_ids = set_piece_initating_events_extractor()
+    else:
+        initiating_event_ids = initiating_events.id.to_numpy().tolist()
 
-	# Next, compile the sequences.
-	sequences_dfs_list = [
-		set_piece_sequence_generator(event_id) \
-		for event_id in initiating_event_ids
-	]
+    # Next, compile the sequences.
+    sequences_dfs_list = [
+        set_piece_sequence_generator(event_id)
+        for event_id in initiating_event_ids
+    ]
 
-	interim_sequences_df = pd.concat(
-		objs=sequences_dfs_list, 
-		keys=range(1, len(sequences_dfs_list) + 1)
-	)
-	final_sequences_df = interim_sequences_df.reset_index().drop(
-		columns="level_1").rename(columns={"level_0":"seq_id"})
+    interim_sequences_df = pd.concat(
+        objs=sequences_dfs_list,
+        keys=range(1, len(sequences_dfs_list) + 1)
+    )
+    final_sequences_df = interim_sequences_df.reset_index().drop(
+        columns="level_1").rename(columns={"level_0": "seq_id"})
 
-	to_return = final_sequences_df
+    to_return = final_sequences_df
 
-	return to_return
-
+    return to_return
