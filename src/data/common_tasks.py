@@ -30,7 +30,7 @@ PLYR_DF = dl.player_data()
 ################################
 ### Define Modular Functions ###
 ################################
-def id_checker(id_to_check: int) -> None:
+def id_checker(id_to_check: int, verbose=1) -> None:
     """
     Purpose
     -------
@@ -44,6 +44,10 @@ def id_checker(id_to_check: int) -> None:
         This argument allows the user to specify the event ID for the
         event/play that started the set piece whose subsequent sequence
         of plays we are trying to determine.
+    verbose : int
+        This argument allows the user to specify whether or not the
+        function will print out an error message detailing the error that
+        it raises.
 
     Returns
     -------
@@ -78,7 +82,8 @@ def id_checker(id_to_check: int) -> None:
 		must be non-zero integer. Received type \
 		`{}` and value `{}`.".format(type(id_to_check), id_to_check)
 
-        print(error_msg)
+        if verbose:
+            print(error_msg)
         raise ass_err
 
 
@@ -107,7 +112,11 @@ def player_position_extractor(
     -------
     to_return : str
         This function returns a string that specifies the position of
-        the player of interest.
+        the player of interest. NOTE that if the function returns the
+        string "-1", that means that the user passed in the player ID
+        0 which is listed as the entries for the event instances in the
+        full tracking data set. This means that the initiating player
+        was not tracked and thus a 0 for the ID was specified instead.
 
     Raises
     ------
@@ -123,7 +132,10 @@ def player_position_extractor(
     """
     to_return = None
     # First, validate your input data.
-    id_checker(player_wyscout_id)
+    try:
+        id_checker(player_wyscout_id, verbose=0)
+    except AssertionError:
+        return "-1"
 
     try:
         assert isinstance(notation_to_return, str)

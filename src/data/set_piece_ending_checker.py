@@ -27,8 +27,6 @@ from src.data import set_piece_extractor as spe
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
-RAW_EVENTS_DF = dl.raw_event_data(league_name="all")
-FINAL_EVENTS_DF = RAW_EVENTS_DF[RAW_EVENTS_DF.playerId > 0]
 
 
 ################################
@@ -166,7 +164,10 @@ def changed_possession_checker(
                 num_consecutive_opp_passes += 1
 
             start_x = event[4][0].get("x")
-            end_x = event[4][1].get("x")
+            try:
+                end_x = event[4][1].get("x")
+            except IndexError:
+                end_x = start_x
 
             # Threshold checks
             checks_list = [
@@ -267,9 +268,14 @@ def attack_reset_checker(
             starting_point = Point(
                 event[4][0].get("x"), event[4][0].get("y")
             )
-            ending_point = Point(
-                event[4][1].get("x"), event[4][1].get("y")
-            )
+            try:
+                # Protect against cases that do not have a listed ending
+                # position.
+                ending_point = Point(
+                    event[4][1].get("x"), event[4][1].get("y")
+                )
+            except IndexError:
+                ending_point = starting_point
 
             # After defining these variables, make the position checks.
             reset_pos = ["DEF", "GKP"]
@@ -368,7 +374,15 @@ def goalie_save_checker(
             # note of goalie saves when they occur.
             event_row = sequence_df.iloc[row_index]
 
-            next_event_row = sequence_df.iloc[row_index + 1]
+            try:
+                # Try to obtain the row that corresponds to the next
+                # event.
+                next_event_row = sequence_df.iloc[row_index + 1]
+            except IndexError:
+                # If there are no more rows to extract from, end the
+                # iteration
+                break
+
             next_initiating_player_pos = ct.player_position_extractor(
                 player_wyscout_id=next_event_row.playerId,
                 notation_to_return="two"
@@ -662,11 +676,16 @@ def end_of_regulation_checker(
         # If there was a referee whistle that caused an interruption in play.
         whistle_row_indicies = np.argwhere(
             whistle_checker_arr).tolist()
-        for while_index in whistle_row_indicies:
+        for whistle_index in whistle_row_indicies:
             # Iterate over each instance of a whistle occurring that caused
             # a pause in play.
-            whistle_row = sequence_df.iloc[while_index]
-            next_row = sequence_df.iloc[while_index + 1]
+            whistle_row = sequence_df.iloc[whistle_index].iloc[0]
+            try:
+                next_row = sequence_df.iloc[whistle_index + 1].iloc[0]
+            except TypeError:
+                # If there are now more rows in the sequence dataframe
+                # that we are working with to extract.
+                next_row = whistle_row
 
             half_match_checker = [
                 whistle_row.matchPeriod != next_row.matchPeriod,
@@ -677,6 +696,41 @@ def end_of_regulation_checker(
                 # an end in the half/match.
                 to_return = [True, whistle_row.id]
                 break
+    else:
+        # It is still possible that the set piece sequence ended because
+        # of the half and/or match ending despite there not being a 
+        # referee whistle.
+        bigger_sequence_df = spe.subsequent_play_generator(
+            set_piece_start_id, 10, trim_data=False)
+
+        half_of_start_of_sp = bigger_sequence_df.iloc[0].matchPeriod
+        change_in_half = np.any(
+            bigger_sequence_df.matchPeriod != half_of_start_of_sp
+        )
+
+        match_of_start_of_sp = bigger_sequence_df.iloc[0].matchId
+        change_in_match = np.any(
+            bigger_sequence_df.matchId != match_of_start_of_sp
+        )
+
+        if change_in_half:
+            to_return = [
+                True, 
+                bigger_sequence_df.iloc[np.argwhere(
+                    (
+                  bigger_sequence_df.matchPeriod != half_of_start_of_sp
+                  ).to_numpy()
+                ).flatten()[0] - 1].id
+            ]
+        if change_in_match:
+            to_return = [
+                True, 
+                bigger_sequence_df.iloc[np.argwhere(
+                    (
+                  bigger_sequence_df.matchId != match_of_start_of_sp
+                  ).to_numpy()
+                ).flatten()[0] - 1].id
+            ]
 
     return to_return
 
@@ -766,5 +820,60 @@ def effective_clearance_checker(
                 to_return = [
                     True, sequence_df.iloc[clearance_row_index - 1].id
                 ]
+
+    return to_return
+
+
+def another_set_piece_checker(
+        set_piece_start_id: int, sequence_to_use=None) -> list:
+    """
+    Purpose
+    -------
+    The purpose of this function is to take the ID for the event that
+    starts a set piece and analyze the next several plays to determine if
+    there was another set piece started.
+
+    Parameters
+    ----------
+    set_piece_start_id : int
+        This argument allows the user to specify the event ID for the
+        event/play that started the set piece whose subsequent sequence
+        of plays we are trying to determine.
+    sequence_to_use : Pandas DataFrame or None
+        This argument allows the user to specify a particular sequence of
+        events to use when testing to see when and how the set piece
+        sequence it contains ended. Its default value is `None`. When set
+        to `None`, the function will utilize the `spe.subsequent_play_generator`
+        function with the user-value for the `set_piece_start_id` argument.
+
+    Returns
+    -------
+    to_return : list
+        This function returns a list that contains two elements. The first
+        is a Boolean that is True if the sequence ended with play being
+        stopped because of the beginning of another set piece sequence and
+        False otherwise. The second is the event ID of the event that marks
+        the end of the set piece sequence of interest if the first element
+        is True and `-1` if the first element is False.
+
+    References
+    ----------
+    1. 
+    """
+    to_return = [False, -1]
+    # First, define the variables that we need.
+    sequence_df = checker_function_set_up(set_piece_start_id,
+                                          sequence_to_use)
+
+    # Next, see if the set piece sequence ended with another set piece
+    # sequence beginning.
+    new_sps_checker_arr = (sequence_df.eventId == 3).to_numpy()
+    if np.any(new_sps_checker_arr):
+        # If there was a new set piece sequence in the events following
+        # the first one.
+        row_index_of_new = np.argwhere(
+            new_sps_checker_arr).flatten()[0]
+        to_return = [True,
+                     sequence_df.iloc[row_index_of_new - 1].id]
 
     return to_return

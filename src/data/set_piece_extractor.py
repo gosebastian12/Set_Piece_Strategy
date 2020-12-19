@@ -28,53 +28,52 @@ from src.data import set_piece_ending_checker as check
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
 RAW_EVENTS_DF = dl.raw_event_data(league_name="all")
-FINAL_EVENTS_DF = RAW_EVENTS_DF[RAW_EVENTS_DF.playerId > 0]
 
 
 ################################
 ### Define Modular Functions ###
 ################################
 def set_piece_initating_events_extractor(
-        type_to_return="list", events_data=FINAL_EVENTS_DF):
+        type_to_return="list", events_data=RAW_EVENTS_DF):
     """
     Purpose
-        -------
-        The purpose of this function is to comb through the full event
-        tracking data set and find the instances that corresponds to the
-        beginning of set piece sequences to return to the user.
+    -------
+    The purpose of this function is to comb through the full event
+    tracking data set and find the instances that corresponds to the
+    beginning of set piece sequences to return to the user.
 
-        Parameters
-        ----------
-        type_to_return : list
-            This argument allows the user to specify how the function will
-            return its result. The available options are:
+    Parameters
+    ----------
+    type_to_return : list
+        This argument allows the user to specify how the function will
+        return its result. The available options are:
             1. "list" which will result in the function giving the IDs
                for all of the events that initiate a set piece sequence.
             2. "dataframe" which will result in the function returning
                a Pandas DataFrame where each row corresponds to an event
                that starts a set piece. Thus, this option allows access
                to the rest of the information associated with each event.
-    The default value for this argument is `"list"`.
-        events_data : Pandas DataFrame
-            This argument allows the user to specify the data set to look for
-            set piece sequence initiating events. Its default value is all of
-            events that we have logging data for.
+        The default value for this argument is `"list"`.
+     events_data : Pandas DataFrame
+        This argument allows the user to specify the data set to look for
+        set piece sequence initiating events. Its default value is all of
+        events that we have logging data for.
 
-        Returns
-        -------
-        to_return : list or Pandas DataFrame
-            This function returns either a list or Pandas DataFrame (which is
-            controlled by the argument `type_to_return`) that specifies all
-            of the events in the specified dataset (see the `events_data`
-            argument) that correspond to the beginning of set piece sequences.
+    Returns
+    -------
+    to_return : list or Pandas DataFrame
+        This function returns either a list or Pandas DataFrame (which is
+        controlled by the argument `type_to_return`) that specifies all
+        of the events in the specified dataset (see the `events_data`
+        argument) that correspond to the beginning of set piece sequences.
 
-        Raises
-        ------
-        ValueError
-            This error is raised when the value and/or type of the passed-in
-            values for `type_to_return` and `events_data` respectively are
-            not correct. See the Parameters section for what are accepted values
-            and types for these arguments.
+    Raises
+    ------
+    ValueError
+        This error is raised when the value and/or type of the passed-in
+        values for `type_to_return` and `events_data` respectively are
+        not correct. See the Parameters section for what are accepted values
+        and types for these arguments.
     """
     to_return = None
     # First, validate the input data.
@@ -110,7 +109,8 @@ def set_piece_initating_events_extractor(
 
 
 def subsequent_play_generator(
-        set_piece_start_id: int, num_events: int) -> pd.DataFrame:
+        set_piece_start_id: int, 
+        num_events: int, trim_data=True) -> pd.DataFrame:
     """
     Purpose
     -------
@@ -128,6 +128,11 @@ def subsequent_play_generator(
         after the beginning of the set piece that the function will return.
         Note that the function may return fewer than the value of this
         argument if it runs into events from a different half, match, etc.
+    trim_data : Boolean
+    	This argument allows the user to control whether or not the function
+    	removes data instances if it finds that they correspond to a
+    	different match and/or half. The default value for this argument
+    	is true.
 
     Returns
     -------
@@ -158,55 +163,63 @@ def subsequent_play_generator(
     # to the event that starts the set piece. NOTE that we have validated
     # that the `ID` column of this data is comprised of unique values.
     start_sp_row_index = np.argwhere(
-        (FINAL_EVENTS_DF.id == set_piece_start_id).to_numpy()
+        (RAW_EVENTS_DF.id == set_piece_start_id).to_numpy()
     ).flatten()[0]
-    start_set_piece_row = FINAL_EVENTS_DF.iloc[start_sp_row_index]
+    start_set_piece_row = RAW_EVENTS_DF.iloc[start_sp_row_index]
     assert isinstance(start_set_piece_row, pd.Series)
 
     # Now, obtain the rest of the rows that we are interested in analyzing.
     row_indicies = list(range(start_sp_row_index,
                               start_sp_row_index + num_events + 1))
 
-    sp_sequece_df = FINAL_EVENTS_DF.iloc[row_indicies]
+    sp_sequece_df = RAW_EVENTS_DF.iloc[row_indicies]
 
     # Validate the data you're about to return.
     assert sp_sequece_df.iloc[0].id == set_piece_start_id
     assert sp_sequece_df.iloc[0].eventId == 3
 
-    half_of_set_piece = start_set_piece_row.matchPeriod
-    assert isinstance(half_of_set_piece, str)
-    match_id_of_set_piece = start_set_piece_row.matchId
+    if trim_data:
+    	# If the user would only like instances that correspond to the
+    	# same half and/or match.
+    	half_of_set_piece = start_set_piece_row.matchPeriod
+    	assert isinstance(half_of_set_piece, str)
+    	match_id_of_set_piece = start_set_piece_row.matchId
 
-    try:
-        assert all(sp_sequece_df.matchPeriod == half_of_set_piece)
-        interim_sequence_df = sp_sequece_df
-    except AssertionError:
-        # If there are events that occur in a different half/period from
-        # the event that corresponds to the beginning of the set piece.
-        interim_sequence_df = sp_sequece_df[
-            sp_sequece_df.matchPeriod == half_of_set_piece
-        ]
+    	try:
+    		assert all(sp_sequece_df.matchPeriod == half_of_set_piece)
+    		interim_sequence_df = sp_sequece_df
+    	except AssertionError:
+    		# If there are events that occur in a different half/period
+    		# from the event that corresponds to the beginning of the set
+    		# piece.
+    		interim_sequence_df = sp_sequece_df[
+    			sp_sequece_df.matchPeriod == half_of_set_piece
+    		]
 
-    try:
-        assert all(sp_sequece_df.matchId == match_id_of_set_piece)
-        final_sequence_df = interim_sequence_df
-    except AssertionError:
-        # If there are events that pertain to a different match than the
-        # event that corresponds to the beginning of the set piece.
-        final_sequence_df = interim_sequence_df[
-            interim_sequence_df.matchId == match_id_of_set_piece
-        ]
+    	try:
+    		assert all(sp_sequece_df.matchId == match_id_of_set_piece)
+    		final_sequence_df = interim_sequence_df
+    	except AssertionError:
+    		# If there are events that pertain to a different match than the
+    		# event that corresponds to the beginning of the set piece.
+    		final_sequence_df = interim_sequence_df[
+    			interim_sequence_df.matchId == match_id_of_set_piece
+    		]
 
-    try:
-        assert np.all(np.diff(final_sequence_df.eventSec) >= 0)
-    except AssertionError:
-        # If for some reason the events are not in order.
-        err_msg = "The events that immediately followed the set piece \
-    	initiating event in the data set were found to be out of order. \
-    	Have you modified the data in some way?"
+    	try:
+    		assert np.all(np.diff(final_sequence_df.eventSec) >= 0)
+    	except AssertionError:
+    		# If for some reason the events are not in order.
+    		err_msg = "The events that immediately followed the set piece \
+    		initiating event in the data set were found to be out of order. \
+    		Have you modified the data in some way?"
 
-        print(err_msg)
-        raise AssertionError
+    		print(err_msg)
+    		raise AssertionError
+    else:
+    	# If the user DOES want instances from a different half and/or
+    	# match.
+    	final_sequence_df = sp_sequece_df
 
     to_return = final_sequence_df.reset_index(drop=True)
 
@@ -264,7 +277,8 @@ def set_piece_sequence_generator(
         check.offsides_checker(set_piece_start_id, sequence_df),
         check.out_of_play_checker(set_piece_start_id, sequence_df),
         check.end_of_regulation_checker(set_piece_start_id, sequence_df),
-        check.effective_clearance_checker(set_piece_start_id, sequence_df)
+        check.effective_clearance_checker(set_piece_start_id, sequence_df),
+        check.another_set_piece_checker(set_piece_start_id, sequence_df)
     ]
 
     # Now we must investigate the results of the checks
@@ -348,6 +362,10 @@ def set_piece_sequences_compiler(
         initiating_event_ids = initiating_events.id.to_numpy().tolist()
 
     # Next, compile the sequences.
+    # ids_arr = np.array(initiating_event_ids)
+    # start_index = np.argwhere(ids_arr == 187939433).flatten()[0]
+    # initiating_event_ids = ids_arr[start_index::].tolist()
+
     sequences_dfs_list = [
         set_piece_sequence_generator(event_id)
         for event_id in initiating_event_ids
