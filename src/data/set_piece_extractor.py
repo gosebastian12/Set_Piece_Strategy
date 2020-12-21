@@ -109,7 +109,7 @@ def set_piece_initating_events_extractor(
 
 
 def subsequent_play_generator(
-        set_piece_start_id: int, 
+        set_piece_start_id: int,
         num_events: int, trim_data=True) -> pd.DataFrame:
     """
     Purpose
@@ -129,10 +129,10 @@ def subsequent_play_generator(
         Note that the function may return fewer than the value of this
         argument if it runs into events from a different half, match, etc.
     trim_data : Boolean
-    	This argument allows the user to control whether or not the function
-    	removes data instances if it finds that they correspond to a
-    	different match and/or half. The default value for this argument
-    	is true.
+        This argument allows the user to control whether or not the function
+        removes data instances if it finds that they correspond to a
+        different match and/or half. The default value for this argument
+        is true.
 
     Returns
     -------
@@ -179,47 +179,47 @@ def subsequent_play_generator(
     assert sp_sequece_df.iloc[0].eventId == 3
 
     if trim_data:
-    	# If the user would only like instances that correspond to the
-    	# same half and/or match.
-    	half_of_set_piece = start_set_piece_row.matchPeriod
-    	assert isinstance(half_of_set_piece, str)
-    	match_id_of_set_piece = start_set_piece_row.matchId
+        # If the user would only like instances that correspond to the
+        # same half and/or match.
+        half_of_set_piece = start_set_piece_row.matchPeriod
+        assert isinstance(half_of_set_piece, str)
+        match_id_of_set_piece = start_set_piece_row.matchId
 
-    	try:
-    		assert all(sp_sequece_df.matchPeriod == half_of_set_piece)
-    		interim_sequence_df = sp_sequece_df
-    	except AssertionError:
-    		# If there are events that occur in a different half/period
-    		# from the event that corresponds to the beginning of the set
-    		# piece.
-    		interim_sequence_df = sp_sequece_df[
-    			sp_sequece_df.matchPeriod == half_of_set_piece
-    		]
+        try:
+            assert all(sp_sequece_df.matchPeriod == half_of_set_piece)
+            interim_sequence_df = sp_sequece_df
+        except AssertionError:
+            # If there are events that occur in a different half/period
+            # from the event that corresponds to the beginning of the set
+            # piece.
+            interim_sequence_df = sp_sequece_df[
+                sp_sequece_df.matchPeriod == half_of_set_piece
+            ]
 
-    	try:
-    		assert all(sp_sequece_df.matchId == match_id_of_set_piece)
-    		final_sequence_df = interim_sequence_df
-    	except AssertionError:
-    		# If there are events that pertain to a different match than the
-    		# event that corresponds to the beginning of the set piece.
-    		final_sequence_df = interim_sequence_df[
-    			interim_sequence_df.matchId == match_id_of_set_piece
-    		]
+        try:
+            assert all(sp_sequece_df.matchId == match_id_of_set_piece)
+            final_sequence_df = interim_sequence_df
+        except AssertionError:
+            # If there are events that pertain to a different match than the
+            # event that corresponds to the beginning of the set piece.
+            final_sequence_df = interim_sequence_df[
+                interim_sequence_df.matchId == match_id_of_set_piece
+            ]
 
-    	try:
-    		assert np.all(np.diff(final_sequence_df.eventSec) >= 0)
-    	except AssertionError:
-    		# If for some reason the events are not in order.
-    		err_msg = "The events that immediately followed the set piece \
+        try:
+            assert np.all(np.diff(final_sequence_df.eventSec) >= 0)
+        except AssertionError:
+            # If for some reason the events are not in order.
+            err_msg = "The events that immediately followed the set piece \
     		initiating event in the data set were found to be out of order. \
     		Have you modified the data in some way?"
 
-    		print(err_msg)
-    		raise AssertionError
+            print(err_msg)
+            raise AssertionError
     else:
-    	# If the user DOES want instances from a different half and/or
-    	# match.
-    	final_sequence_df = sp_sequece_df
+        # If the user DOES want instances from a different half and/or
+        # match.
+        final_sequence_df = sp_sequece_df
 
     to_return = final_sequence_df.reset_index(drop=True)
 
@@ -319,37 +319,43 @@ def set_piece_sequence_generator(
 
 
 def set_piece_sequences_compiler(
-        initiating_events=None) -> pd.DataFrame:
+        initiating_events=None, do_backup=False) -> pd.DataFrame:
     """
     Purpose
-	-------
-	The purpose of this function is to take all of the IDs that correspond
-	to the beginning of set piece sequences of interest and return the
+    -------
+    The purpose of this function is to take all of the IDs that correspond
+    to the beginning of set piece sequences of interest and return the
 
-	Parameters
-	----------
-	initiating_events: Pandas DataFrame or None
-    	This argument allows the user to specify which initiating events
-    	to use when compiling the data set of set piece sequences. Its
-    	default value is None which results in this function calling
-    	`set_piece_initating_events_extractor` with its default values.
-    	If this is not the behavior the user desires, then they must
-    	specify a different collection of initiating events with this
-    	argument.
+    Parameters
+    ----------
+    initiating_events : Pandas DataFrame or None
+	    This argument allows the user to specify which initiating events
+	    to use when compiling the data set of set piece sequences. Its
+	    default value is None which results in this function calling
+	    `set_piece_initating_events_extractor` with its default values.
+	    If this is not the behavior the user desires, then they must
+	    specify a different collection of initiating events with this
+	    argument.
+    do_backup : Boolean
+        This argument allows the user to specify whether or not the function
+        will save all of the set piece sequence data-frames in a directory
+        to protect against the code in this function breaking and thus
+        losing data that was collected to that point.
 
-	Returns
-	-------
-	to_return : Pandas DataFrame
-    	This function returns a Pandas DataFrame that contains all of
-    	the set piece sequences that it compiled. While making this
-    	collection of sequences, the function assigns custom IDs for each
-    	set piece sequence it finds. These IDs can be found in the new
-    	column `sequence_id`.
+    Returns
+    -------
+    to_return : Pandas DataFrame
+        This function returns a Pandas DataFrame that contains all of
+        the set piece sequences that it compiled. While making this
+        collection of sequences, the function assigns custom IDs for each
+        set piece sequence it finds. These IDs can be found in the new
+        column `sequence_id`.
 
-	References
-	----------
-	1. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
-	2. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rename.html
+    References
+    ----------
+    1. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
+    2. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rename.html
+    3. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_hdf.html
     """
     to_return = None
     # First, set the necessary variables using the settings specified by
@@ -362,22 +368,71 @@ def set_piece_sequences_compiler(
         initiating_event_ids = initiating_events.id.to_numpy().tolist()
 
     # Next, compile the sequences.
-    # ids_arr = np.array(initiating_event_ids)
-    # start_index = np.argwhere(ids_arr == 187939433).flatten()[0]
-    # initiating_event_ids = ids_arr[start_index::].tolist()
+    ids_arr = np.array(initiating_event_ids)
+    start_index = np.argwhere(ids_arr == 218217861).flatten()[0]
+    initiating_event_ids = ids_arr[start_index + 1::].tolist()
 
-    sequences_dfs_list = [
-        set_piece_sequence_generator(event_id)
-        for event_id in initiating_event_ids
-    ]
+    if do_backup:
+        dfs_list = []
+        seq_count_write_threshold = 50000
+        file_num = 4
 
-    interim_sequences_df = pd.concat(
-        objs=sequences_dfs_list,
-        keys=range(1, len(sequences_dfs_list) + 1)
-    )
-    final_sequences_df = interim_sequences_df.reset_index().drop(
-        columns="level_1").rename(columns={"level_0": "seq_id"})
+        backup_dir_rel_path = "../../data/interim/compiled_sequences"
+        backup_dir_path = os.path.join(SCRIPT_DIR, backup_dir_rel_path)
 
-    to_return = final_sequences_df
+        for event in initiating_event_ids:
+            sequence_df = set_piece_sequence_generator(event)
+            dfs_list.append(sequence_df)
+
+            # if len(dfs_list) == seq_count_write_threshold:
+            #     dfs_comp = pd.concat(
+            #         objs=dfs_list,
+            #         keys=range(1, len(dfs_list) + 1)
+            #     )
+
+            #     df_to_write = dfs_comp.reset_index().drop(
+            #         columns="level_1").rename(columns={"level_0": "seq_id"})
+
+            #     df_to_write.to_hdf(
+            #         path_or_buf="{}/comp_{}.h5".format(backup_dir_path,
+            #                                            file_num),
+            #         key="df",
+            #         mode="w"
+            #     )
+
+            #     # Update necessary values.
+            #     dfs_list = []
+            #     file_num += 1
+            # else:
+            #     pass
+        dfs_comp = pd.concat(
+        	objs=dfs_list,
+        	keys=range(1, len(dfs_list) + 1)
+        )
+
+        df_to_write = dfs_comp.reset_index().drop(
+        	columns="level_1").rename(columns={"level_0": "seq_id"})
+        df_to_write.to_hdf(
+        	path_or_buf="{}/comp_{}.h5".format(backup_dir_path,
+        		                               file_num),
+        	key="df",
+        	mode="w"
+        )
+
+    else:
+        sequences_dfs_list = [
+            set_piece_sequence_generator(event) \
+            for event in initiating_event_ids
+        ]
+
+        interim_sequences_df = pd.concat(
+            objs=sequences_dfs_list,
+            keys=range(1, len(sequences_dfs_list) + 1)
+        )
+
+        final_sequences_df = interim_sequences_df.reset_index().drop(
+            columns="level_1").rename(columns={"level_0": "seq_id"})
+
+        to_return = final_sequences_df
 
     return to_return

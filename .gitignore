@@ -8,3 +8,4 @@ env/
 
 # Large data file
 data/raw/events/*.json
+data/interim/compiled_sequences/*.h5
