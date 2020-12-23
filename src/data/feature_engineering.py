@@ -201,7 +201,7 @@ def delta_distance_engineer(row) -> float:
 	return to_return
 
 
-def delta_goal_distance_engineer(row) ->:
+def delta_goal_distance_engineer(row) -> float:
 	"""
 	Purpose
 	-------
@@ -209,7 +209,11 @@ def delta_goal_distance_engineer(row) ->:
 	METHOD OF A PANDAS DATAFRAME WITH THE AXIS PARAMETER SET TO `"columns"`
 	or `1`. 
 
-	The purpose of this function is to
+	The purpose of this function is to calculate the difference between
+	two distances. THe first is the distance between where the event of
+	interest started and the middle of the goal line of the defending team
+	and the second is the same distance but for where the event of interest
+	ended.
 
 	Parameters
 	----------
@@ -220,8 +224,9 @@ def delta_goal_distance_engineer(row) ->:
 
 	Returns
 	-------
-	to_return :
-		This function returns a
+	to_return : float
+		This function returns a floating-point value that specifies the
+		difference between the two distances to goal.
 
 		NOTE that when this function is passed to the `apply()` method of
 		the sequence dataset, the result will be a Pandas Series comprising
@@ -287,7 +292,7 @@ def delta_goal_distance_engineer(row) ->:
 	return to_return
 
 
-def time_in_match_engineer(row) ->:
+def time_in_match_engineer(row) -> float:
 	"""
 	Purpose
 	-------
@@ -295,7 +300,11 @@ def time_in_match_engineer(row) ->:
 	METHOD OF A PANDAS DATAFRAME WITH THE AXIS PARAMETER SET TO `"columns"`
 	or `1`. 
 
-	The purpose of this function is to
+	The purpose of this function is to return a normalized version of the
+	time in the match in which this event occurs. By normalized, we mean
+	that the value specified in the sequence and tracking datasets, number
+	of seconds since the beginning of the game, is divided by 5400, the
+	number of seconds in 90 minutes.
 
 	Parameters
 	----------
@@ -306,8 +315,12 @@ def time_in_match_engineer(row) ->:
 
 	Returns
 	-------
-	to_return :
-		This function returns a
+	to_return : float
+		This function returns a floating-point value that is (quasi-strictly
+		because of extra-time and added-time) between 0 and 1. This specifies
+		the proportion through the game in which this event of interest
+		occurred (i.e., a value of 0.6 means that the event occurred as
+		the game has been 60% completed).
 
 		NOTE that when this function is passed to the `apply()` method of
 		the sequence dataset, the result will be a Pandas Series comprising
@@ -349,7 +362,7 @@ def time_in_match_engineer(row) ->:
 	return to_return
 
 
-def score_differential_engineer(row) ->:
+def score_differential_engineer(row) -> int:
 	"""
 	Purpose
 	-------
@@ -357,7 +370,7 @@ def score_differential_engineer(row) ->:
 	METHOD OF A PANDAS DATAFRAME WITH THE AXIS PARAMETER SET TO `"columns"`
 	or `1`. 
 
-	The purpose of this function is to
+	The purpose of this function is to return the score differential
 
 	Parameters
 	----------
@@ -368,8 +381,8 @@ def score_differential_engineer(row) ->:
 
 	Returns
 	-------
-	to_return :
-		This function returns a
+	to_return : int
+		This function returns an integer that specifies
 
 		NOTE that when this function is passed to the `apply()` method of
 		the sequence dataset, the result will be a Pandas Series comprising
@@ -507,35 +520,5 @@ def basic_instance_features(
 
 	# Validate result and then return it to the user.
 	to_return = feat_eng_df
-
-	return to_return
-
-
-def hi() ->:
-	"""
-	Purpose
-	-------
-	The purpose of this function is to
-
-	Parameters
-	----------
-	arg_1 : 
-		This argument allows the user to specify
-
-	Returns
-	-------
-	to_return :
-		This function returns a
-
-	Raises
-	------
-
-	References
-	----------
-	1.
-	"""
-	to_return = None
-
-	# First,
 
 	return to_return

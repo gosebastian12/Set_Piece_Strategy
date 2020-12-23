@@ -6,7 +6,7 @@ Created on Mon Nov 30 7:20:02 CST 2020
 @author: Sebastian E. Gonzalez
 
 Script Purpose: Write functions to allow for easy access to tracking data
-in Wyscout API.
+in Wyscout API and saved locally.
 """
 ###################################
 ### Necessary Import Statements ###
@@ -22,11 +22,10 @@ import pandas as pd
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
 
+
 ################################
 ### Define Modular Functions ###
 ################################
-
-
 def authentication_header_generator(
         user_name: str, password: str) -> str:
     """

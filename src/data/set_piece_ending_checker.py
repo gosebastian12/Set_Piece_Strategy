@@ -21,9 +21,7 @@ import swifter
 from shapely.geometry import Polygon, Point
 
 # custom modules
-from src.data import data_loader as dl
 from src.data import common_tasks as ct
-from src.data import set_piece_extractor as spe
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -51,7 +49,7 @@ def checker_function_set_up(
         This argument allows the user to specify a particular sequence of
         events to use when testing to see when and how the set piece
         sequence it contains ended. Its default value is `None`. When set
-        to `None`, the function will utilize the `spe.subsequent_play_generator`
+        to `None`, the function will utilize the `ct.subsequent_play_generator`
         function with the user-value for the `set_piece_start_id` argument.
 
     Returns
@@ -76,7 +74,7 @@ def checker_function_set_up(
     if isinstance(sequence_to_use, type(None)):
         # If the user did NOT specify a particular set piece sequence to
         # use.
-        sequence_df = spe.subsequent_play_generator(
+        sequence_df = ct.subsequent_play_generator(
             set_piece_start_id=set_piece_start_id, num_events=20
         )
     else:
@@ -119,7 +117,7 @@ def changed_possession_checker(
         This argument allows the user to specify a particular sequence of
         events to use when testing to see when and how the set piece
         sequence it contains ended. Its default value is `None`. When set
-        to `None`, the function will utilize the `spe.subsequent_play_generator`
+        to `None`, the function will utilize the `ct.subsequent_play_generator`
         function with the user-value for the `set_piece_start_id` argument.
 
     Returns
@@ -222,7 +220,7 @@ def attack_reset_checker(
         This argument allows the user to specify a particular sequence of
         events to use when testing to see when and how the set piece
         sequence it contains ended. Its default value is `None`. When set
-        to `None`, the function will utilize the `spe.subsequent_play_generator`
+        to `None`, the function will utilize the `ct.subsequent_play_generator`
         function with the user-value for the `set_piece_start_id` argument.
 
     Returns
@@ -334,7 +332,7 @@ def goalie_save_checker(
         This argument allows the user to specify a particular sequence of
         events to use when testing to see when and how the set piece
         sequence it contains ended. Its default value is `None`. When set
-        to `None`, the function will utilize the `spe.subsequent_play_generator`
+        to `None`, the function will utilize the `ct.subsequent_play_generator`
         function with the user-value for the `set_piece_start_id` argument.
 
     Returns
@@ -427,7 +425,7 @@ def goal_checker(
         This argument allows the user to specify a particular sequence of
         events to use when testing to see when and how the set piece
         sequence it contains ended. Its default value is `None`. When set
-        to `None`, the function will utilize the `spe.subsequent_play_generator`
+        to `None`, the function will utilize the `ct.subsequent_play_generator`
         function with the user-value for the `set_piece_start_id` argument.
 
     Returns
@@ -485,7 +483,7 @@ def foul_checker(
         This argument allows the user to specify a particular sequence of
         events to use when testing to see when and how the set piece
         sequence it contains ended. Its default value is `None`. When set
-        to `None`, the function will utilize the `spe.subsequent_play_generator`
+        to `None`, the function will utilize the `ct.subsequent_play_generator`
         function with the user-value for the `set_piece_start_id` argument.
 
     Returns
@@ -541,7 +539,7 @@ def offsides_checker(
         This argument allows the user to specify a particular sequence of
         events to use when testing to see when and how the set piece
         sequence it contains ended. Its default value is `None`. When set
-        to `None`, the function will utilize the `spe.subsequent_play_generator`
+        to `None`, the function will utilize the `ct.subsequent_play_generator`
         function with the user-value for the `set_piece_start_id` argument.
 
     Returns
@@ -596,7 +594,7 @@ def out_of_play_checker(
         This argument allows the user to specify a particular sequence of
         events to use when testing to see when and how the set piece
         sequence it contains ended. Its default value is `None`. When set
-        to `None`, the function will utilize the `spe.subsequent_play_generator`
+        to `None`, the function will utilize the `ct.subsequent_play_generator`
         function with the user-value for the `set_piece_start_id` argument.
 
     Returns
@@ -651,7 +649,7 @@ def end_of_regulation_checker(
         This argument allows the user to specify a particular sequence of
         events to use when testing to see when and how the set piece
         sequence it contains ended. Its default value is `None`. When set
-        to `None`, the function will utilize the `spe.subsequent_play_generator`
+        to `None`, the function will utilize the `ct.subsequent_play_generator`
         function with the user-value for the `set_piece_start_id` argument.
 
     Returns
@@ -700,7 +698,7 @@ def end_of_regulation_checker(
         # It is still possible that the set piece sequence ended because
         # of the half and/or match ending despite there not being a 
         # referee whistle.
-        bigger_sequence_df = spe.subsequent_play_generator(
+        bigger_sequence_df = ct.subsequent_play_generator(
             set_piece_start_id, 10, trim_data=False)
 
         half_of_start_of_sp = bigger_sequence_df.iloc[0].matchPeriod
@@ -762,7 +760,7 @@ def effective_clearance_checker(
         This argument allows the user to specify a particular sequence of
         events to use when testing to see when and how the set piece
         sequence it contains ended. Its default value is `None`. When set
-        to `None`, the function will utilize the `spe.subsequent_play_generator`
+        to `None`, the function will utilize the `ct.subsequent_play_generator`
         function with the user-value for the `set_piece_start_id` argument.
 
     Returns
@@ -843,7 +841,7 @@ def another_set_piece_checker(
         This argument allows the user to specify a particular sequence of
         events to use when testing to see when and how the set piece
         sequence it contains ended. Its default value is `None`. When set
-        to `None`, the function will utilize the `spe.subsequent_play_generator`
+        to `None`, the function will utilize the `ct.subsequent_play_generator`
         function with the user-value for the `set_piece_start_id` argument.
 
     Returns
