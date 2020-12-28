@@ -20,6 +20,8 @@ import numpy as np
 import swifter
 
 # ML related packages
+import kneed
+from sklearn.cluster import KMeans, MeanShift
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -28,19 +30,18 @@ SCRIPT_DIR = os.path.dirname(__file__)
 ################################
 ### Define Modular Functions ###
 ################################
-def hi() ->:
+def kmeans_cluster(get_best_num_clusters=True) ->:
 	"""
 	Purpose
 	-------
-
-	Parameters
-	----------
 	The purpose of this function is to
 
 	Parameters
 	----------
-	arg_1 : 
+	get_best_num_clusters : Boolean
 		This argument allows the user to specify
+
+		The value of this parameter defaults to `True`.
 
 	Returns
 	-------
@@ -52,11 +53,45 @@ def hi() ->:
 
 	References
 	----------
-	1.
+	1. https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html
 	"""
 	to_return = None
 
-	# First,
+	# First, validate the input data.
+	try:
+		assert isinstance(get_best_num_clusters, bool)
+	except:
+		err_msg = "The data type of the value passed in to the `get_best_num_clusters`\
+		argument is invalid. It must be of type `Boolean`. Received type\
+		`{}` instead.".format(type(get_best_num_clusters))
+
+	# Next, instantiate the model.
+	if get_best_num_clusters:
+		kmeans_kwargs = {
+			"init": "k-means++",
+			"n_init": 15,
+			"max_iter": 300,
+			"random_state": 69,
+		}
+		sse_vals = []
+		fitted_models_dict = {}
+
+		for k in range(3, 11, 1):
+			kmeans_model = KMeans(n_clusters=k, **kmeans_kwargs)
+			kmeans_model.fit()
+
+			sse_vals.append(kmeans.inertia_)
+			fitted_models_dict[k] = kmeans_model
+
+		knee_locator = kneed.KneeLocator(
+			range(1, 11), sse_vals, curve="convex", direction="decreasing"
+		)
+		best_num_clusters = knee_locator.elbow
+	else:
+		pass
+
+	# Return the fitted model.
+	to_return = fitted_models_dict.get(best_num_clusters)
 
 	return to_return
 

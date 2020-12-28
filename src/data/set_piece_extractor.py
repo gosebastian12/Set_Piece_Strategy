@@ -18,7 +18,6 @@ import os
 # data manipulation
 import pandas as pd
 import numpy as np
-import swifter
 
 # custom modules
 from src.data import common_tasks as ct

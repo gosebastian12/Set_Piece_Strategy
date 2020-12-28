@@ -358,7 +358,10 @@ def matches_data(league_name: str, rel_path=None) -> pd.DataFrame:
 
     # Finally, load in the data with Pandas.
     matches_zip_obj = ZipFile("matches.zip", "r")
-    data_file_names = [file.filename for file in matches_zip_obj.filelist]
+    data_file_names = [
+        file.filename for file in matches_zip_obj.filelist \
+        if file.filename.endswith(".json") and file.filename.startswith("matches")
+    ]
 
     league_file_mapper = {"all": data_file_names,
                           "england": "matches_England.json",

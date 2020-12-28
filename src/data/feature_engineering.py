@@ -348,7 +348,7 @@ def time_in_match_engineer(row) -> float:
 
     # First, validate the input data.
     try:
-        match_time = row.eventSec
+        match_time_since_half = row.eventSec
     except AttributeError:
         # If the row/DataFrame passed to the function does not have the
         # proper column(s).
@@ -360,6 +360,13 @@ def time_in_match_engineer(row) -> float:
 
     # Next, perform necessary calculation to arrive at feature value.
     total_match_time = 90 * 60    # Note how this is measured in seconds.
+    if row.matchPeriod == "2H":
+        match_time += 45 * 60
+    elif row.matchPeriod == "E1":
+        match_time += 90 * 60
+    elif row.matchPeriod == "E2":
+        match_time += 90 * 60 + 15*  60
+        
     normed_match_time = match_time / total_match_time
 
     to_return = normed_match_time
@@ -464,7 +471,7 @@ def score_differential_engineer(row) -> int:
 
 
 def basic_instance_features(
-        sequence_dataset: pd.DataFrame) -> pd.DataFrame:
+        events_data_set: pd.DataFrame) -> pd.DataFrame:
     """
     Purpose
     -------
@@ -499,7 +506,7 @@ def basic_instance_features(
 
     Parameters
     ----------
-    sequence_dataset : Pandas DataFrame
+    events_data_set : Pandas DataFrame
         This argument allows the user to specify the compiled sequence
         dataset that will be transformed to create the training/testing
         feature set.
@@ -528,13 +535,13 @@ def basic_instance_features(
 
     # First, validate the input data.
     try:
-        assert isinstance(sequence_dataset, pd.DataFrame)
-    except AssertionError:
+        assert isinstance(events_data_set, pd.DataFrame)
+    except (AssertionError, IndexError) as errs:
         # If the user did not specify the sequence dataset in a Pandas
         # DataFrame.
-        err_msg = "The passed-in value of the `sequence_dataset` argument\
+        err_msg = "The passed-in value of the `events_data_set` argument\
 		must be a Pandas DataFrame. The received type was\
-        `{}`".format(type(sequence_dataset))
+        `{}`".format(type(events_data_set))
 
         print(err_msg)
         raise ValueError
@@ -543,7 +550,21 @@ def basic_instance_features(
     # features.
     feat_eng_df = pd.DataFrame([])
 
-    position_indicators = sequence_dataset.swifter.apply(
+    # Score feature.
+    if "score" in events_data_set.columns:
+        feat_eng_df["score_diff"] = events_data_set.swifter.apply(
+            func=score_differential_engineer, axis="columns"
+        )
+    else:
+        # If the passed in data set for events do NOT have a `score` column.
+        events_data_set["score"] = ct.score_compiler(events_data_set)
+
+        feat_eng_df["score_diff"] = events_data_set.swifter.apply(
+            func=score_differential_engineer, axis="columns"
+        )
+    
+    # Position one-hot-encoded-variables.
+    position_indicators = events_data_set.swifter.apply(
         func=position_engineer, axis="columns"
     )
     pos_inds_labels_list = ["is_goalie", "is_mid", "is_def", "is_foward"]
@@ -551,20 +572,18 @@ def basic_instance_features(
         position_indicators.tolist(), position_indicators.index
     )
 
-    feat_eng_df["pos_delta_diff"] = sequence_dataset.swifter.apply(
+    # Distance-related features.
+    feat_eng_df["pos_delta_diff"] = events_data_set.swifter.apply(
         func=delta_distance_engineer, axis="columns"
     )
 
-    feat_eng_df["to_goal_delta_diff"] = sequence_dataset.swifter.apply(
+    feat_eng_df["to_goal_delta_diff"] = events_data_set.swifter.apply(
         func=delta_goal_distance_engineer, axis="columns"
     )
 
-    feat_eng_df["match_time"] = sequence_dataset.swifter.apply(
+    # Match time feature.
+    feat_eng_df["match_time"] = events_data_set.swifter.apply(
         func=time_in_match_engineer, axis="columns"
-    )
-
-    feat_eng_df["score_diff"] = sequence_dataset.swifter.apply(
-        func=score_differential_engineer, axis="columns"
     )
 
     # Validate result and then return it to the user.

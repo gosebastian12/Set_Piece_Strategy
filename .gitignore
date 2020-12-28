@@ -6,7 +6,8 @@
 src.egg-info/
 env/
 
-# Large data file
+# Large data files
 data/raw/events/*.json
 data/interim/compiled_sequences/*.h5
+data/interim/events_with_scores.csv
 data/raw/matches/

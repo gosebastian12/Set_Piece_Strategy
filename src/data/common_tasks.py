@@ -284,14 +284,12 @@ def player_position_extractor(
     notation_mapper = {"two": "code2",
                        "three": "code3",
                        "full": "name"}
-    code_to_use = notation_mapper.get("normed_notation")
+    code_to_use = notation_mapper.get(normed_notation)
 
     player_row = PLYR_DF[PLYR_DF.wyId == player_wyscout_id]
     try:
         assert player_row.shape[0] == 1
     except AssertionError:
-        print(player_wyscout_id)
-        print(player_row)
         raise AssertionError
 
     player_position = player_row.role.iloc[0].get(code_to_use)
@@ -357,27 +355,37 @@ def goal_checker(row) -> bool:
 
 
 def match_scores_generator(
-        match_events=EVENTS_DF) -> pd.Series:
+        match_events: pd.DataFrame) -> pd.Series:
     """
     Purpose
     -------
-    The purpose of this function is to
+    The purpose of this function is to take all of the events that occurred
+    during a match and return a Pandas Series that specifies the score of the match
+    at that particular point of the game.
 
     Parameters
     ----------
     match_events : Pandas DataFrame
-        This argument allows the user to specify
+        This argument allows the user to specify the collection of events
+        of the match of interest.
 
     Returns
     -------
     to_return : Pandas Series
-        This function returns a Pandas Series that specifies
+        This function returns a Pandas Series that specifies the score of
+        the match at each event that each row corresponds to. Thus, the
+        size of this Series will be equivalent to the number of rows in
+        the data frame passed-in to the `match_events` argument.
     """
     to_return = None
-    # First, determine home-away designations.
+    # First, validate input data.
+    assert np.all(match_events.id.value_counts() == 1)
+    assert np.all(match_events.matchId.value_counts() == match_events.shape[0])
+
+    # Next, determine home-away designations.
     match_row = MATCHES_DF[
-        MATCHES_DF.wyId == match_events.iloc[0].matchId].iloc[0
-                                                              ]
+        MATCHES_DF.wyId == match_events.iloc[0].matchId
+    ].iloc[0]
 
     team_ids_list = list(match_row.teamsData.keys())
     team_sides_dict = {
@@ -392,9 +400,11 @@ def match_scores_generator(
 
     # Next, iterate through the events of the first half.
     # Initialize certain values.
-    scores_in_half1_series = match_events[
-        match_events.matchPeriod == "1H"
-    ].swifter.apply(func=goal_checker, axis="columns")
+    half1_events = match_events[match_events.matchPeriod == "1H"]
+    scores_in_half1_series = half1_events.swifter.progress_bar(False).apply(
+        func=goal_checker, axis="columns"
+    )
+    assert scores_in_half1_series.size == half1_events.shape[0]
     half1_scores_list = []
 
     current_away_score = 0
@@ -410,14 +420,26 @@ def match_scores_generator(
 
         for goal_index in indicies_of_goals:
             # Iterate through each instance of a goal being scored.
-            side_of_goal = inverted_sides_dict[
-                match_events.iloc[goal_index].teamId
-            ]
+            goal_row = match_events.iloc[goal_index]
+            side_of_goal = inverted_sides_dict[goal_row.teamId]
+            was_own_goal = {"id": 102} in goal_row.tags
 
             if side_of_goal == "away":
-                current_away_score += 1
+                if was_own_goal:
+                    # If a team committed an own goal, then that counts
+                    # as a score for the other team.
+                    current_home_score += 1
+                else:
+                    # If this was just a regular ol'goal.
+                    current_away_score += 1
             elif side_of_goal == "home":
-                current_home_score += 1
+                if was_own_goal:
+                    # If a team committed an own goal, then that counts
+                    # as a score for the other team.
+                    current_away_score += 1
+                else:
+                    # If this was just a regular ol'goal.
+                    current_home_score += 1
             new_score = "{}-{}".format(current_away_score,
                                        current_home_score)
             half1_scores_list += [
@@ -444,7 +466,13 @@ def match_scores_generator(
     ).get("scoreHT")
     end_of_half1_score = "{}-{}".format(end_of_half1_away_score,
                                         end_of_half1_home_score)
-    assert end_of_half1_score == current_score
+    try:
+        assert end_of_half1_score == current_score
+    except AssertionError as not_right_score_error:
+        print("Match ID: {}".format(match_events.iloc[0].matchId))
+        print("Halftime score from match dataset: {}".format(end_of_half1_score))
+        print("Halftime score we found: {}".format(current_score))
+        raise not_right_score_error
 
     half1_scores_series = pd.Series(half1_scores_list)
 
@@ -453,9 +481,11 @@ def match_scores_generator(
     current_away_score = int(current_score[0])
     current_home_score = int(current_score[-1])
 
-    scores_in_half2_series = match_events[
-        match_events.matchPeriod == "2H"
-    ].swifter.apply(func=goal_checker, axis="columns")
+    half2_events = match_events[match_events.matchPeriod == "2H"]
+    scores_in_half2_series = half2_events.swifter.progress_bar(False).apply(
+        func=goal_checker, axis="columns"
+    )
+    assert half2_events.shape[0] == scores_in_half2_series.size
     half2_scores_list = []
 
     if np.any(scores_in_half2_series):
@@ -465,18 +495,23 @@ def match_scores_generator(
             scores_in_half2_series.to_numpy()).flatten().tolist()
 
         for goal_index in indicies_of_goals:
-            corrected_goal_index = goal_index + \
-                half1_scores_series.last_valid_index()
+            corrected_goal_index = goal_index + half1_scores_series.size
             assert corrected_goal_index <= match_events.shape[0]
 
-            side_of_goal = inverted_sides_dict.get(
-                match_events.iloc[corrected_goal_index].teamId
-            )
+            goal_row = match_events.iloc[corrected_goal_index]
+            side_of_goal = inverted_sides_dict.get(goal_row.teamId)
+            was_own_goal = {"id": 102} in goal_row.tags
 
             if side_of_goal == "away":
-                current_away_score += 1
+                if was_own_goal:
+                    current_home_score += 1
+                else:
+                    current_away_score += 1
             else:
-                current_home_score += 1
+                if was_own_goal:
+                    current_away_score += 1
+                else:
+                    current_home_score += 1
             new_score = "{}-{}".format(current_away_score,
                                        current_home_score)
 
@@ -489,9 +524,25 @@ def match_scores_generator(
         # Fill in the remaining values since the last goal found above.
         half2_scores_list += [current_score] * (
             scores_in_half2_series.size - len(half2_scores_list))
+    elif match_row.wyId == 2499781:
+        # If we are dealing with a match that, for some reason, does not
+        # have a specified goal event despite there in fact being a goal
+        # scored in the match. This particular match is the Chelsea,
+        # Manchester City match from 09/30/2017 that ended 0-1 thanks to
+        # Kevin De Bruyne's goal in the 67th minute.
+        events_times = match_events[match_events.matchPeriod == "2H"].eventSec
+
+        goal_threshold = np.argwhere(
+            (events_times >= (67 - 45) * 60).to_numpy()
+        ).flatten()[0]
+        half2_scores_list = ["0-0"] * goal_threshold + \
+            ["1-0"] * (events_times.size - goal_threshold)
+
+        current_score = "1-0"
     else:
         half2_scores_list = [current_score] * scores_in_half2_series.size
-    # Validate final first half score we arrived at.
+
+    # Validate final second half score we arrived at.
     assert len(half2_scores_list) == scores_in_half2_series.size
 
     end_of_half2_away_score = match_row.teamsData.get(
@@ -502,71 +553,108 @@ def match_scores_generator(
     ).get("score")
     end_of_half2_score = "{}-{}".format(end_of_half2_away_score,
                                         end_of_half2_home_score)
-    assert end_of_half2_score == current_score
+    try:
+        assert end_of_half2_score == current_score
+    except AssertionError as not_right_score_error:
+        print("Match ID: {}".format(match_events.iloc[0].matchId))
+        print("End of second half score from match dataset: {}".format(
+            end_of_half2_score))
+        print("End of second half score we found: {}".format(current_score))
+        raise not_right_score_error
 
     half2_scores_series = pd.Series(half2_scores_list)
 
     # Next, iterate through the events of the extra period (if there was
     # one).
-    current_score = half2_scores_series.iloc[-1]
-    current_away_score = int(current_score[0])
-    current_home_score = int(current_score[-1])
+    match_duration = match_row.duration
+    if match_duration == "Regular":
+        # If there was no extra-time played.
+        et_scores_series = pd.Series([], dtype="object")
+        penalties_scores_series = pd.Series([], dtype="object")
+    elif match_duration in ["ExtraTime", "Penalties"]:
+        # If there was a pair of extra-time periods played.
+        current_score = half2_scores_series.iloc[-1]
+        current_away_score = int(current_score[0])
+        current_home_score = int(current_score[-1])
 
-    scores_in_et_series = match_events[
-        np.logical_or(match_events.matchPeriod == "E1",
-                      match_events.matchPeriod == "E2")
-    ].swifter.apply(func=goal_checker, axis="columns")
-    et_scores_list = []
+        extra_period_events = match_events[
+            np.logical_or(match_events.matchPeriod == "E1",
+                          match_events.matchPeriod == "E2")
+        ]
+        scores_in_et_series = extra_period_events.swifter.progress_bar(
+            False).apply(func=goal_checker, axis="columns")
+        et_scores_list = []
 
-    if np.any(scores_in_et_series):
-        # If there was at least one goal scored in an extra period.
-        indicies_of_goals = np.argwhere(
-            scores_in_et_series.to_numpy()).flatten().tolist()
+        if np.any(scores_in_et_series):
+            # If there was at least one goal scored in an extra period.
+            indicies_of_goals = np.argwhere(
+                scores_in_et_series.to_numpy()).flatten().tolist()
 
-        for goal_index in indicies_of_goals:
-            corrected_goal_index = goal_index + \
-                half2_scores_series.last_valid_index()
-            assert corrected_goal_index <= match_events.shape[0]
+            for goal_index in indicies_of_goals:
+                corrected_goal_index = goal_index + half2_scores_series.size
+                assert corrected_goal_index <= match_events.shape[0]
 
-            side_of_goal = inverted_sides_dict.get(
-                match_events.iloc[corrected_goal_index].teamId
+                side_of_goal = inverted_sides_dict.get(
+                    match_events.iloc[corrected_goal_index].teamId
+                )
+
+                if side_of_goal == "away":
+                    current_away_score += 1
+                else:
+                    current_home_score += 1
+                new_score = "{}-{}".format(current_away_score,
+                                           current_home_score)
+
+                et_scores_list += [current_score] * (
+                    goal_index - len(et_scores_list))
+                et_scores_list.append(new_score)
+
+                current_score = new_score
+
+            # Fill in the remaining values since the last goal found above.
+            et_scores_list += [current_score] * (
+                scores_in_et_series.size - len(et_scores_list))
+
+            et_scores_series = pd.Series(et_scores_list)
+            assert et_scores_series.size == scores_in_et_series.size
+        else:
+            # If there were no goals scored in the extra time period.
+            et_scores_series = pd.Series(
+                [current_score] * extra_period_events.shape[0],
+                dtype="object"
             )
 
-            if side_of_goal == "away":
-                current_away_score += 1
-            else:
-                current_home_score += 1
-            new_score = "{}-{}".format(current_away_score,
-                                       current_home_score)
-
-            et_scores_list += [current_score] * (
-                goal_index - len(et_scores_list))
-            et_scores_list.append(new_score)
-
-            current_score = new_score
-
-        # Fill in the remaining values since the last goal found above.
-        et_scores_list += [current_score] * (
-            scores_in_et_series.size - len(et_scores_list))
-
-        et_scores_series = pd.Series(et_scores_list)
-        assert et_scores_series.size == scores_in_et_series.size
-    else:
-        # If there were no goals scored in the extra time period.
-        et_scores_series = pd.Series([], dtype="object")
+        # Finally, add on whatever last score we arrived at for penalty
+        # events that were tracked.
+        penalties_events = match_events[match_events.matchPeriod == "P"]
+        penalties_scores_series = pd.Series(
+            [current_score] * penalties_events.shape[0]
+        )
 
     # Put together all three of your results.
-    score_series = pd.concat(
-        [half1_scores_series, half2_scores_series, et_scores_series],
-        ignore_index=True
-    )
+    score_series = pd.concat(objs=[half1_scores_series,
+                                   half2_scores_series,
+                                   et_scores_series,
+                                   penalties_scores_series],
+                             ignore_index=True
+                             )
+    try:
+        assert score_series.size == match_events.shape[0]
+    except AssertionError as no_scores_for_each_event:
+        print(match_events.iloc[0].matchId)
+        print("Number of Scores Compiled: {}".format(score_series.size))
+        print("Number of Events Specified: {}".format(match_events.shape[0]))
+        raise no_scores_for_each_event
 
     to_return = score_series
 
     return to_return
 
 
-def score_compiler(events_data=EVENTS_DF) -> str:
+def score_compiler(
+        events_data=EVENTS_DF,
+        as_series=True,
+        subset_search=False) -> str:
     """
     Purpose
     -------
@@ -583,6 +671,24 @@ def score_compiler(events_data=EVENTS_DF) -> str:
         of events that they would like to work with when determining scores
         of games.
 
+        This parameter's value defaults to the dataframe comprising all
+        of the events we have tracking data for that is loaded-in at the
+        beginning of this script.
+    as_series : Boolean
+        This argument allows the user to control what DataType the function
+        will return its results as. If specified as `True`, then the collection
+        of scores will be returned as a Pandas Series. If specified as
+        `False`, then the collection of scores will be appended as a new
+        column the DataFrame specified with the `events_data` argument and
+        that new DataFrame will be returned. The version of this function
+        only supports these two options.
+
+        This parameter's value default to `True`.
+    subset_search : Boolean
+        This argument allows the user to control
+
+        This parameter's value default to `True`.
+
     Returns
     -------
     to_return : str
@@ -593,7 +699,9 @@ def score_compiler(events_data=EVENTS_DF) -> str:
     Raises
     ------
     AssertionError
-        This error is raised when
+        This error is raised when the user does NOT pass in the correct
+        DataType for the `events_data` argument. It must be a Pandas
+        DataFrame.
 
     References
     ----------
@@ -604,13 +712,13 @@ def score_compiler(events_data=EVENTS_DF) -> str:
     # First, validate the input to the function.
     try:
         assert isinstance(events_data, pd.DataFrame)
-    except AssertionError:
+    except AssertionError as not_df_error:
         err_msg = "The specification for the events data set is invalid.\
         This function accepts a Pandas DataFrame for the `events_data`\
         argument. Received type `{}`.".format(type(events_data))
 
         print(err_msg)
-        raise AssertionError
+        raise not_df_error
 
     # Next, obtain a list of all of the match IDs that we have in this
     # dataset.
@@ -619,51 +727,61 @@ def score_compiler(events_data=EVENTS_DF) -> str:
 
     # Now we can iteratively go through each match and update the scores
     # at each point of an event accordingly.
-    matches_dfs_list = []
+    objs_to_concat = []
 
     starting_index_to_search = 0
     num_rows_to_search = 3000
     ending_index_to_search = 3000
     for match_id in match_ids_list:
-        # Notice that we're starting by taking a look at each match
-        # individually. We make this less computationally redundant by
-        # only subset-ing a subset of the full data set.
-        candidate_match_events = events_data[
-            starting_index_to_search:ending_index_to_search:
-        ]
-        match_events = candidate_match_events[
-            candidate_match_events.matchId == match_id
-        ]
-        if match_events.shape[0] == candidate_match_events.shape[0]:
-            # If we included all of the candidates in our collection of
-            # match events. This means that there is a chance that there
-            # are more events that we are not including.
-            more_candidates = events_data[
-                ending_index_to_search:ending_index_to_search + 2000
+        if subset_search:
+            # Notice that we're starting by taking a look at each match
+            # individually. We make this less computationally redundant
+            # by only subset-ing a subset of the full data set.
+            candidate_match_events = events_data[
+                starting_index_to_search:ending_index_to_search:
             ]
-            more_events = more_candidates[
-                more_candidates.matchId == match_id
+            match_events = candidate_match_events[
+                candidate_match_events.matchId == match_id
             ]
-            final_mes = pd.concat([match_events, more_events],
-                                  ignore_index=True)
+            if match_events.shape[0] == candidate_match_events.shape[0]:
+                # If we included all of the candidates in our collection of
+                # match events. This means that there is a chance that there
+                # are more events that we are not including.
+                more_candidates = events_data[
+                    ending_index_to_search:ending_index_to_search + 2000
+                ]
+                more_events = more_candidates[
+                    more_candidates.matchId == match_id
+                ]
+                final_mes = pd.concat([match_events, more_events],
+                                      ignore_index=True)
+            else:
+                # `final_mes` stands for final match events.
+                final_mes = match_events
         else:
-            # `final_mes` stands for final match events.
-            final_mes = match_events
+            final_mes = events_data[events_data.matchId == match_id]
 
         # Add a score column to each row in the match. Since we are given
         # the scores at the end of every half in the matches data set, we
         # perform our score compilation on a half-by-half-basis so as to
         # validate our results along the way.
-        final_mes["score"] = match_scores_generator(final_mes)
-        matches_dfs_list.append(final_mes)
+        scores_series = match_scores_generator(final_mes)
+        if as_series:
+            # If the user would like the results to be returned as a
+            # Pandas Series.
+            objs_to_concat.append(scores_series)
+        else:
+            final_mes["score"] = scores_series
+            objs_to_concat.append(final_mes)
 
         # Update necessary values.
         starting_index_to_search = final_mes.last_valid_index() + 1
         ending_index_to_search = starting_index_to_search + num_rows_to_search
 
     # Finally, validate and return the result
-    to_return = pd.concat(matches_dfs_list, ignore_index=True)
+    to_return = pd.concat(objs_to_concat, ignore_index=True)
     assert to_return.shape[0] == events_data.shape[0]
-    assert to_return.shape[1] + 1 == events_data.shape[1]
+    if not as_series:
+        assert to_return.shape[1] + 1 == events_data.shape[1]
 
     return to_return
