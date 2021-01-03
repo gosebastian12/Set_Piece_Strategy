@@ -360,13 +360,21 @@ def time_in_match_engineer(row) -> float:
 
     # Next, perform necessary calculation to arrive at feature value.
     total_match_time = 90 * 60    # Note how this is measured in seconds.
+    match_time = match_time_since_half
     if row.matchPeriod == "2H":
+        # If we have to add the time elapsed in the first half to the
+        # time in the match specified in the data.
         match_time += 45 * 60
     elif row.matchPeriod == "E1":
+        # If we have to add the times elapsed in the first and second halves
+        #  to the time in the match specified in the data.
         match_time += 90 * 60
     elif row.matchPeriod == "E2":
-        match_time += 90 * 60 + 15*  60
-        
+        # If we have to add the time elapsed in the first and second halves
+        # as well as the time elapsed in the first period of the extra time
+        # to the time in the match specified in the data.
+        match_time += 90 * 60 + 15 * 60
+
     normed_match_time = match_time / total_match_time
 
     to_return = normed_match_time
@@ -546,11 +554,25 @@ def basic_instance_features(
         print(err_msg)
         raise ValueError
 
+    # Before we run any of the feature engineering functions, let's first
+    # save relevant information that we will potentially need to identify
+    # events, matches, and sequences.
+    feat_eng_df = pd.DataFrame([])
+    feat_eng_df["seq_id"] = events_data_set.seq_id
+    feat_eng_df["id"] = events_data_set.id
+    feat_eng_df["matchId"] = events_data_set.matchId
+
     # Next, call all of the functions that engineer each of the new
     # features.
-    feat_eng_df = pd.DataFrame([])
+
+    # Match time feature.
+    print("Putting together time in match feature.")
+    feat_eng_df["match_time"] = events_data_set.swifter.apply(
+        func=time_in_match_engineer, axis="columns"
+    )
 
     # Score feature.
+    print("Putting together score differential feature.")
     if "score" in events_data_set.columns:
         feat_eng_df["score_diff"] = events_data_set.swifter.apply(
             func=score_differential_engineer, axis="columns"
@@ -564,6 +586,7 @@ def basic_instance_features(
         )
     
     # Position one-hot-encoded-variables.
+    print("Putting together player position indicator features.")
     position_indicators = events_data_set.swifter.apply(
         func=position_engineer, axis="columns"
     )
@@ -573,17 +596,13 @@ def basic_instance_features(
     )
 
     # Distance-related features.
+    print("Putting together distance-related features.")
     feat_eng_df["pos_delta_diff"] = events_data_set.swifter.apply(
         func=delta_distance_engineer, axis="columns"
     )
 
     feat_eng_df["to_goal_delta_diff"] = events_data_set.swifter.apply(
         func=delta_goal_distance_engineer, axis="columns"
-    )
-
-    # Match time feature.
-    feat_eng_df["match_time"] = events_data_set.swifter.apply(
-        func=time_in_match_engineer, axis="columns"
     )
 
     # Validate result and then return it to the user.

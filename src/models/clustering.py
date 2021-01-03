@@ -21,7 +21,7 @@ import swifter
 
 # ML related packages
 import kneed
-from sklearn.cluster import KMeans, MeanShift
+from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -30,7 +30,7 @@ SCRIPT_DIR = os.path.dirname(__file__)
 ################################
 ### Define Modular Functions ###
 ################################
-def kmeans_cluster(get_best_num_clusters=True) ->:
+def kmeans_cluster(training_X: np.array, get_best_num_clusters=True):
 	"""
 	Purpose
 	-------
@@ -38,6 +38,8 @@ def kmeans_cluster(get_best_num_clusters=True) ->:
 
 	Parameters
 	----------
+	training_X : Numpy Array
+		This argument allows the user to specify
 	get_best_num_clusters : Boolean
 		This argument allows the user to specify
 
@@ -59,6 +61,12 @@ def kmeans_cluster(get_best_num_clusters=True) ->:
 
 	# First, validate the input data.
 	try:
+		assert isinstance(training_X, np.ndarray)
+	except AssertionError:
+		err_msg = "The data type of the object passed in to the `training_X`\
+		argument is invalid. It must be a Numpy Array; received type `{}`\
+		instead.".format(type(training_X))
+	try:
 		assert isinstance(get_best_num_clusters, bool)
 	except:
 		err_msg = "The data type of the value passed in to the `get_best_num_clusters`\
@@ -78,13 +86,13 @@ def kmeans_cluster(get_best_num_clusters=True) ->:
 
 		for k in range(3, 11, 1):
 			kmeans_model = KMeans(n_clusters=k, **kmeans_kwargs)
-			kmeans_model.fit()
+			kmeans_model.fit(training_X)
 
-			sse_vals.append(kmeans.inertia_)
+			sse_vals.append(kmeans_model.inertia_)
 			fitted_models_dict[k] = kmeans_model
 
 		knee_locator = kneed.KneeLocator(
-			range(1, 11), sse_vals, curve="convex", direction="decreasing"
+			range(3, 11), sse_vals, curve="convex", direction="decreasing"
 		)
 		best_num_clusters = knee_locator.elbow
 	else:
@@ -96,7 +104,7 @@ def kmeans_cluster(get_best_num_clusters=True) ->:
 	return to_return
 
 
-def hi() ->:
+def meanshift_cluster(training_X: np.array):
 	"""
 	Purpose
 	-------
@@ -107,7 +115,7 @@ def hi() ->:
 
 	Parameters
 	----------
-	arg_1 : 
+	training_X : Numpy Array
 		This argument allows the user to specify
 
 	Returns
@@ -120,40 +128,59 @@ def hi() ->:
 
 	References
 	----------
-	1.
+	1. https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MeanShift.html
+	2. https://www.machinecurve.com/index.php/2020/04/23/how-to-perform-mean-shift-clustering-with-python-in-scikit/
+	3. https://scikit-learn.org/stable/modules/generated/sklearn.cluster.estimate_bandwidth.html
 	"""
 	to_return = None
 
-	# First,
+	# First, validate the input data.
+	try:
+		assert isinstance(training_X, np.ndarray)
+	except AssertionError:
+		err_msg = "The data type of the object passed in to the `training_X`\
+		argument is invalid. It must be a Numpy Array; received type `{}`\
+		instead.".format(type(training_X))
+
+	# Next, instantiate the model.
+	bandwidth = estimate_bandwidth(X=training_X, 
+		                           quantile=0.3, 
+		                           n_samples=1000,
+		                           random_state=5569,
+		                           n_jobs=-1)
+	mean_shift = MeanShift(bandwidth=bandwidth)
+
+	# Fit the model and then return that updated model object.
+	mean_shift.fit(training_X)
 
 	return to_return
 
 
-def hi() ->:
-	"""
-	Purpose
-	-------
-	The purpose of this function is to
+# def hi() ->:
+# 	"""
+# 	Purpose
+# 	-------
+# 	The purpose of this function is to
 
-	Parameters
-	----------
-	arg_1 : 
-		This argument allows the user to specify
+# 	Parameters
+# 	----------
+# 	arg_1 : 
+# 		This argument allows the user to specify
 
-	Returns
-	-------
-	to_return :
-		This function returns a
+# 	Returns
+# 	-------
+# 	to_return :
+# 		This function returns a
 
-	Raises
-	------
+# 	Raises
+# 	------
 
-	References
-	----------
-	1.
-	"""
-	to_return = None
+# 	References
+# 	----------
+# 	1.
+# 	"""
+# 	to_return = None
 
-	# First,
+# 	# First,
 
-	return to_return
+# 	return to_return
