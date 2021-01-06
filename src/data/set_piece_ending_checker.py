@@ -36,8 +36,8 @@ def checker_function_set_up(
     Purpose
     -------
     The purpose of this function is to contain all of the code that must
-    be run at the beginning of each checker function in this script so
-    that all that code just lives in one place.
+    be run at the beginning of each checker function in this script. This
+    is done for readability and organization.
 
     Parameters
     ----------
@@ -495,10 +495,6 @@ def foul_checker(
         event ID of the event that marks the end of the set piece
         sequence of interest if the first element is True and `-1` if the
             first element is False.
-
-    References
-    ----------
-    1.
     """
     to_return = [False, -1]
     # First, let's validate the inputted data.
@@ -551,10 +547,6 @@ def offsides_checker(
         is the event ID of the event that marks the end of the set piece
         sequence of interest if the first element is True and `-1` if the
         first element is False.
-
-    References
-    ----------
-    1.
     """
     to_return = [False, -1]
     # First, define the variables that we need.
@@ -606,10 +598,6 @@ def out_of_play_checker(
         otherwise. The second is the event ID of the event that marks the
         end of the set piece sequence of interest if the first element is
         True and `-1` if the first element is False.
-
-    References
-    ----------
-    1.
     """
     to_return = [False, -1]
     # First, define the variables that we need.
@@ -696,7 +684,7 @@ def end_of_regulation_checker(
                 break
     else:
         # It is still possible that the set piece sequence ended because
-        # of the half and/or match ending despite there not being a 
+        # of the half and/or match ending despite there not being a
         # referee whistle.
         bigger_sequence_df = ct.subsequent_play_generator(
             set_piece_start_id, 10, trim_data=False)
@@ -713,20 +701,20 @@ def end_of_regulation_checker(
 
         if change_in_half:
             to_return = [
-                True, 
+                True,
                 bigger_sequence_df.iloc[np.argwhere(
                     (
-                  bigger_sequence_df.matchPeriod != half_of_start_of_sp
-                  ).to_numpy()
+                        bigger_sequence_df.matchPeriod != half_of_start_of_sp
+                    ).to_numpy()
                 ).flatten()[0] - 1].id
             ]
         if change_in_match:
             to_return = [
-                True, 
+                True,
                 bigger_sequence_df.iloc[np.argwhere(
                     (
-                  bigger_sequence_df.matchId != match_of_start_of_sp
-                  ).to_numpy()
+                        bigger_sequence_df.matchId != match_of_start_of_sp
+                    ).to_numpy()
                 ).flatten()[0] - 1].id
             ]
 
@@ -853,10 +841,6 @@ def another_set_piece_checker(
         False otherwise. The second is the event ID of the event that marks
         the end of the set piece sequence of interest if the first element
         is True and `-1` if the first element is False.
-
-    References
-    ----------
-    1. 
     """
     to_return = [False, -1]
     # First, define the variables that we need.

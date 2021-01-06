@@ -16,14 +16,17 @@ import os
 
 # data manipulation
 import numpy as np
+import pandas as pd
 
 # visualization packages
 import matplotlib.pyplot as plt
+import plotly.express as px
 
 # ML-related packages
 from sklearn.manifold import TSNE
 
 # custom modules
+from src.visualizations import cluster_bar_chart_prep as cbcp
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -256,7 +259,7 @@ def add_scatter_to_ax_obj(
 
     # Now, create a legend.
     ax_obj.legend(*scatter_obj.legend_elements(),
-                  loc="upper left",
+                  loc="best",
                   title="Predicted Class",
                   title_fontsize=15,
                   fontsize="x-large",
@@ -275,7 +278,8 @@ def add_scatter_to_ax_obj(
 
 
 def cluster_subplot_generator(
-        feature_data: np.array, predicted_labels: np.array, plot_objs=None, save_plot=False, **kwargs):
+        feature_data: np.array, predicted_labels: np.array,
+        plot_objs=None, save_plot=False, **kwargs):
     """
     Purpose
     -------
@@ -337,7 +341,7 @@ def cluster_subplot_generator(
             raise ValueError
 
     try:
-        assert feature_data.shape[1] == 8
+        assert feature_data.shape[1] == 10
         assert axes.size == 8
     except AssertionError:
         raise ValueError
@@ -355,83 +359,101 @@ def cluster_subplot_generator(
         color_arr=predicted_labels,
         x_lab="Time in Match",
         y_lab="Score Differential",
-        title_lab="Score Differential v. Time in Match")   # score diff. v. time
+        title_lab="Score Differential v. Time in Match"
+    )   # score diff. v. time
     add_scatter_to_ax_obj(
         ax_obj=axes[0, 1],
         x_data=feature_data[:, 0],
-        y_data=feature_data[:, -2],
+        y_data=feature_data[:, 6],
         color_arr=predicted_labels,
         x_lab="Time in Match",
         y_lab=r"$\Delta$ Position Dist.",
-        title_lab=r"$\Delta$ Position Dist. v. Time in Match")   # pos. delta v. time
+        title_lab=r"$\Delta$ Position Dist. v. Time in Match"
+    )   # pos. delta v. time
 
     add_scatter_to_ax_obj(
         ax_obj=axes[1, 0],
         x_data=feature_data[:, 0],
-        y_data=feature_data[:, -1],
+        y_data=feature_data[:, 7],
         color_arr=predicted_labels,
         x_lab="Time in Match",
         y_lab=r"$\Delta$ To Goal Dist.",
-        title_lab=r"$\Delta$ To Goal Dist. v. Time in Match")   # to goal delta v. time
+        title_lab=r"$\Delta$ To Goal Dist. v. Time in Match"
+    )   # to goal delta v. time
     add_scatter_to_ax_obj(
         ax_obj=axes[1, 1],
         x_data=feature_data[:, 1],
-        y_data=feature_data[:, -2],
+        y_data=feature_data[:, 6],
         color_arr=predicted_labels,
         x_lab="Score Differential",
         y_lab=r"$\Delta$ Position Dist.",
-        title_lab=r"$\Delta$ Position Dist. v. Score Differential")   # pos. delta v. score diff.
+        title_lab=r"$\Delta$ Position Dist. v. Score Differential"
+    )   # pos. delta v. score diff.
 
     add_scatter_to_ax_obj(
         ax_obj=axes[2, 0],
         x_data=feature_data[:, 1],
-        y_data=feature_data[:, -1],
+        y_data=feature_data[:, 7],
         color_arr=predicted_labels,
         x_lab="Score Differential",
         y_lab=r"$\Delta$ To Goal Dist.",
-        title_lab=r"$\Delta$ To Goal Dist. v. Score Differential")  # to goal delta v. score diff.
+        title_lab=r"$\Delta$ To Goal Dist. v. Score Differential"
+    )  # to goal delta v. score diff.
     add_scatter_to_ax_obj(
         ax_obj=axes[2, 1],
-        x_data=feature_data[:, -1],
-        y_data=feature_data[:, -2],
+        x_data=feature_data[:, 7],
+        y_data=feature_data[:, 6],
         color_arr=predicted_labels,
         x_lab=r"$\Delta$ To Goal Dist.",
         y_lab=r"$\Delta$ Position Dist.",
-        title_lab=r"$\Delta$ Position Dist. v. $\Delta$ To Goal Dist.")  # pos. delta v. to goal delta
+        title_lab=r"$\Delta$ Position Dist. v. $\Delta$ To Goal Dist."
+    )  # pos. delta v. to goal delta
+
+    add_scatter_to_ax_obj(
+        ax_obj=axes[3, 0],
+        x_data=feature_data[:, 8],
+        y_data=feature_data[:, 9],
+        color_arr=predicted_labels,
+        x_lab=r"No. Attacking Events",
+        y_lab=r"Max-Avg. $\Delta$ Dists.",
+        title_lab=r"Max-Avg. $\Delta$ Dists. v. No. Attacking Events"
+    )  # max-avg. delta positions v. num of attacking events
 
     # Now we want to create the TSNE graph.
     tsne_transformer = TSNE(n_components=2, random_state=1169, n_jobs=-1)
-    if feature_data.shape[0] > 10000:
+    if feature_data.shape[0] > 75000:
         wout_replace_indicies = np.random.choice(
-            a=np.arange(0, feature_data.shape[0]), size=10000, replace=False
+            a=np.arange(0, feature_data.shape[0]), size=75000, replace=False
         )
         feat_data_to_transform = feature_data[wout_replace_indicies]
+        wout_predicted_labs = predicted_labels[wout_replace_indicies]
     else:
         feat_data_to_transform = feature_data
-    features_embedded = tsne_transformer.fit_transform(feature_data)
+        wout_predicted_labs = predicted_labels
+    features_embedded = tsne_transformer.fit_transform(feat_data_to_transform)
 
     assert features_embedded.shape[1] == 2
-    assert features_embedded.shape[0] == feature_data.shape[0]
+    assert features_embedded.shape[0] == feat_data_to_transform.shape[0]
     add_scatter_to_ax_obj(
-        ax_obj=axes[3, 0],
+        ax_obj=axes[3, 1],
         x_data=features_embedded[:, 0],
         y_data=features_embedded[:, 1],
-        color_arr=predicted_labels,
-        x_lab="TSNE Embedded Feature 1",
-        y_lab="TSNE Embedded Feature 2",
+        color_arr=wout_predicted_labs,
+        x_lab="TSNE Feature 1",
+        y_lab="TSNE Feature 2",
         title_lab="TSNE Plot w/2 Components")
 
     # Finally, display the final result and save the result if specified
     # by the user.
     fig.show()
     if save_plot:
-        plot_rel_dir = "../../visualizations/initial_clustering"
-        plot_dir = os.path.join(SCRIPT_DIR, plot_rel_dir)
+        plot_dir = os.path.join(
+            SCRIPT_DIR, "../../visualizations/initial_clustering")
 
         file_name = kwargs.get("file_name", None)
         try:
             assert not isinstance(file_name, type(None))
-        except:
+        except BaseException:
             err_msg = "The user has specified that they would like the\
             subplot generated by this function to be saved. When this is\
             done, the user must pass in the name of the file that the subplot\
@@ -441,9 +463,94 @@ def cluster_subplot_generator(
             print(err_msg)
             raise ValueError
 
-        if not "." in file_name:
+        if "." not in file_name:
             file_name += ".png"
 
         fig.savefig("{}/{}".format(plot_dir, file_name), bbox_inches="tight")
+
+    return to_return
+
+
+def plotly_bar_chart(count_df: pd.DataFrame, args_dict: dict, cluster_id: int):
+    """
+    Purpose
+    -------
+    The purpose of this function is to
+
+    Parameters
+    ----------
+    count_df : Pandas DataFrame
+        This argument allows the user to specify
+    args_dict : Dictionary
+        This argument allows the user to specify
+
+    Returns
+    -------
+    to_return :
+        This function returns
+
+    Raises
+    ------
+    ValueError
+        This error is raised when
+
+    References
+    ----------
+    1. https://plotly.com/python/bar-charts/
+    2. https://plotly.com/python-api-reference/generated/plotly.express.bar
+    """
+    to_return = None
+
+    # First, validate the input data.
+    try:
+        assert isinstance(count_df, pd.DataFrame)
+    except AssertionError:
+        err_msg = "The "
+
+        print(err_msg)
+        raise ValueError
+
+    # Next, define necessary values that will be used later on.
+    x_arg, y_arg = args_dict.get("x"), args_dict.get("y")
+    text_arg = args_dict.get("text")
+    is_for_subevents = "sub" in x_arg
+
+    opacity_lvl = 0.65
+    bar_color = "rgb(195, 62, 227)"
+    plot_width = 1200
+    plot_height = 700
+    x_label_tilt = 45
+
+    x_label = "Sub-Event Type Name" if is_for_subevents \
+              else "Event Type Name"
+    axes_label_dict = {x_arg : x_label,
+                       y_arg : "Normalized Count"}
+    plot_title = \
+        "Sub-Event Types Bar Chart for Cluster {}".format(cluster_id) if is_for_subevents\
+        else "Event Types Bar Chart for Cluster {}".format(cluster_id)
+
+    # Now we can create the bar chart itself.
+    bar_obj = px.bar(data_frame=count_df,
+                     x=x_arg,
+                     y=y_arg,
+                     text=text_arg,
+                     labels=axes_label_dict,
+                     opacity=opacity_lvl,
+                     width=plot_width,
+                     height=plot_height)
+    bar_obj.update_traces(marker_color=bar_color,
+                          marker_line_color='rgb(0, 0, 0)',
+                          marker_line_width=.75)
+    bar_obj.update_layout(font={"family": "Times New Roman",
+                                "size": 18,
+                                "color": "black"},
+                          title={"text": plot_title,
+                                 "y": 0.965,
+                                 "x": 0.5,
+                                 "xanchor": "center",
+                                 "yanchor": "top"},
+                          xaxis_tickangle=x_label_tilt)
+
+    to_return = bar_obj
 
     return to_return

@@ -38,14 +38,18 @@ def position_engineer(row) -> list:
     METHOD OF A PANDAS DATAFRAME WITH THE AXIS PARAMETER SET TO `"columns"`
     or `1`.
 
-    The purpose of this function is to
+    The purpose of this function is to analyze the information we have for
+    the event corresponding to the row of interest in order to populate a
+    set of indicator variables that indicate the position of the player
+    that is initiating the event. See the Returns section for more
+    information about what each returned indicator variable describes.
 
     Parameters
     ----------
     row : row of a Pandas DataFrame
-            This argument allows the user to specify which row instance they
-            are working with as the `apply()` iteratively gets applied to
-            each row of the sequence DataFrame.
+        This argument allows the user to specify which row instance they 
+        are working with as the `apply()` iteratively gets applied to
+        each row of the sequence DataFrame.
 
     Returns
     -------
@@ -390,7 +394,11 @@ def score_differential_engineer(row) -> int:
     METHOD OF A PANDAS DATAFRAME WITH THE AXIS PARAMETER SET TO `"columns"`
     or `1`.
 
-    The purpose of this function is to return the score differential
+    The purpose of this function is to return the score differential from
+    the perspective of the team that is initiating the event associated
+    with the row of interest. Thus, for example, if the score is listed
+    as "3-2" in the `score` column and the initiating team is the home
+    team, this function will return the value `-1`.
 
     Parameters
     ----------
@@ -478,6 +486,91 @@ def score_differential_engineer(row) -> int:
     return to_return
 
 
+def num_attacking_events_engineer(
+        sequence_events_df: pd.DataFrame) -> pd.Series:
+    """
+    Purpose
+    -------
+    The purpose of this function is to take
+
+    Parameters
+    ----------
+    sequence_events_df :
+        This parameter allows the user to specify
+
+    Returns
+    -------
+    to_return : Pandas Series
+        This function returns
+
+    Raises
+    ------
+    ValueError
+        This error is raised when
+
+    References
+    ----------
+    1.
+    """
+    to_return = None
+
+    # First, validate the input data.
+    try:
+        assert isinstance(sequence_events_df, pd.DataFrame)
+    except AssertionError:
+        err_msg = "The object passed to the argument `sequence_events_df`\
+        is of type `{}`. This argument only accepts Pandas\
+        DataFrames.".format(type(sequence_events_df))
+
+        print(err_msg)
+        raise ValueError
+
+    try:
+        assert sequence_events_df.iloc[0].eventId == 3
+    except AssertionError:
+        err_msg = "The sequence of events for this particular set piece\
+        sequence must begin with a set piece event. The initiating event\
+        for the sequence of events given to the function is `{}` (see the\
+        `eventid2name` file in the `data` directory for more\
+        information.".format(sequence_events_df.iloc[0].eventId)
+
+        print(err_msg)
+        raise ValueError
+
+    try:
+        assert sequence_events_df.seq_id.unique().size == 1
+    except AssertionError:
+        err_msg = "The DataFrame passed to the `sequence_events_df` argument\
+        must contain events that only belong to one set piece sequence.\
+        The DataFrame received contains events from `{}` different set\
+        piece sequences.".format(sequence_events_df.seq_id.unique().size)
+
+        print(err_msg)
+        raise ValueError
+
+    # Next, define the variables that we will need in our computations.
+    total_num_events = sequence_events_df.shape[0]
+    attacking_team_id = sequence_events_df.iloc[0].teamId
+    team_id_series = sequence_events_df.teamId
+
+    # Perform the computations.
+    was_event_attacking = team_id_series == attacking_team_id
+    cumm_num_attacks = was_event_attacking.cumsum()
+    normed_cummul = cumm_num_attacks.reset_index(drop=True).divide(
+        pd.Series(np.arange(1, cumm_num_attacks.size + 1))
+    )
+
+    # Validate and return the result.
+    assert normed_cummul.size == sequence_events_df.shape[0]
+    assert normed_cummul.iloc[-1] == cumm_num_attacks.iloc[-1] / \
+        total_num_events
+    assert np.all(np.logical_and(normed_cummul <= 1, normed_cummul >= 0))
+
+    to_return = normed_cummul
+
+    return to_return
+
+
 def basic_instance_features(
         events_data_set: pd.DataFrame) -> pd.DataFrame:
     """
@@ -507,6 +600,9 @@ def basic_instance_features(
            corresponding to that particular row instances is winning the
            match at that time, negative if they are losing, and zero if
            they are currently tied with their opposition.
+        6. A variable whose value specifies the percentage of events that
+           were initiated by the attacking team (the side that began the
+           set piece sequence) up to the point of that event.
     NOTE that the code that "engineers" will be broken up into functions
     that each correspond to a specific feature. This function merely calls
     all of those specific, modular functions and puts together their
@@ -544,7 +640,7 @@ def basic_instance_features(
     # First, validate the input data.
     try:
         assert isinstance(events_data_set, pd.DataFrame)
-    except (AssertionError, IndexError) as errs:
+    except (AssertionError, IndexError):
         # If the user did not specify the sequence dataset in a Pandas
         # DataFrame.
         err_msg = "The passed-in value of the `events_data_set` argument\
@@ -584,7 +680,7 @@ def basic_instance_features(
         feat_eng_df["score_diff"] = events_data_set.swifter.apply(
             func=score_differential_engineer, axis="columns"
         )
-    
+
     # Position one-hot-encoded-variables.
     print("Putting together player position indicator features.")
     position_indicators = events_data_set.swifter.apply(
@@ -604,6 +700,19 @@ def basic_instance_features(
     feat_eng_df["to_goal_delta_diff"] = events_data_set.swifter.apply(
         func=delta_goal_distance_engineer, axis="columns"
     )
+
+    # Number of attacking events.
+    print("Putting together number of attacking events.")
+    unique_sequence_ids = events_data_set.seq_id.unique()
+
+    cum_nums_list = []
+    for seq_id in unique_sequence_ids:
+        sequence_events = events_data_set[events_data_set.seq_id == seq_id]
+        cum_num_series = num_attacking_events_engineer(sequence_events)
+
+        cum_nums_list.append(cum_num_series)
+    full_cum_num_series = pd.concat(cum_nums_list, ignore_index=True)
+    feat_eng_df["num_attacking_events"] = full_cum_num_series
 
     # Validate result and then return it to the user.
     to_return = feat_eng_df

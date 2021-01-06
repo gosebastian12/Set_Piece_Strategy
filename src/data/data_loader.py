@@ -18,6 +18,7 @@ from zipfile import ZipFile
 # data manipulation
 from base64 import b64encode
 import pandas as pd
+import numpy as np
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -121,6 +122,9 @@ def raw_event_data(league_name: str) -> pd.DataFrame:
         accepted values for the `league_name` argument.
     FileNotFoundError
         Such an error is raised when the function cannot locate the directory
+        that contains the event data for the specified league. This may
+        occur when the structure of the repository has been modified (i.e.,
+        the data directory was moved).
 
     References
     ----------
@@ -359,7 +363,7 @@ def matches_data(league_name: str, rel_path=None) -> pd.DataFrame:
     # Finally, load in the data with Pandas.
     matches_zip_obj = ZipFile("matches.zip", "r")
     data_file_names = [
-        file.filename for file in matches_zip_obj.filelist \
+        file.filename for file in matches_zip_obj.filelist
         if file.filename.endswith(".json") and file.filename.startswith("matches")
     ]
 
@@ -386,4 +390,98 @@ def matches_data(league_name: str, rel_path=None) -> pd.DataFrame:
 
     to_return = final_df
 
+    return to_return
+
+
+def sequence_data(with_scores=True) -> pd.DataFrame:
+    """
+    Purpose
+    -------
+    The purpose of this function is to provide an easy-to-use tool for the
+    user to be able to load in the sequence data compiled from the raw
+    tracking data set (see the `1_Obtaining_Set_Piece_Data.ipynb` file in
+    the notebooks directory for how this was done).
+
+    Parameters
+    ----------
+    with_scores : Boolean
+        This parameter allows the user to specify whether or not they would
+        like the DataFrame they receive from this function that contains
+        all of the events for each set piece sequence identified in the
+        event tracking data set to also contain the score at the point of
+        the match at which each event occurs.
+
+    Returns
+    -------
+    to_return : Pandas DataFrame
+        This function returns a Pandas DataFrame that contains all of the
+        sequence data that has been loaded in with the user-specified
+        information.
+
+    Raises
+    ------
+    ValueError
+        This error is raised when the user does not passed in an object
+        of accepted data type to the `with_scores` argument.
+    """
+    to_return = None
+    # First, validate the input data.
+    try:
+        assert isinstance(with_scores, bool)
+    except BaseException:
+        error_msg = "The parameter `with_scores` only accepts objects of\
+        type `Boolean`. Instead, an object of type `{}` was passed to the\
+        argument.".format(type(with_scores))
+
+        print(error_msg)
+        raise ValueError
+
+    # Next, load in the data as specified by the user.
+    if with_scores:
+        rel_dir = "../../data/interim"
+        full_dir = os.path.join(SCRIPT_DIR, rel_dir)
+
+        sequences_df = pd.read_csv(
+            "{}/sequences_with_scores.csv".format(full_dir)
+        ).drop(columns=["Unnamed: 0"])
+    else:
+        rel_dir = "../../data/interim/compiled_sequences"
+        full_dir = os.path.join(SCRIPT_DIR, rel_dir)
+
+        sequence_files = [
+            "{}/{}".format(full_dir, file) for file in
+            os.listdir(full_dir) if file.endswith(".h5")
+        ]
+        sequences_df = pd.concat(
+            [pd.read_hdf(seq_file, key="df") for seq_file in sequence_files],
+            ignore_index=True
+        )
+
+        indicies_of_sequence_starts = np.argwhere(
+            (sequences_df.eventId == 3).to_numpy()
+        ).flatten().tolist()
+        sp_sequence_ids_list = []
+        last_start = 0
+        current_id = 100
+        for index in indicies_of_sequence_starts:
+            # First, update values for all of the events that make up the
+            # sequence whose beginning row index we are now working with
+            # during this iteration.
+            if last_start != index:
+                sp_sequence_ids_list += [current_id] * (index - last_start)
+                # Update necessary values
+                current_id += 1
+                last_start = index + 1
+
+                sp_sequence_ids_list.append(current_id)
+                assert len(sp_sequence_ids_list) == index + 1
+        # Fill in the values
+        sp_sequence_ids_list += [current_id] * (
+            sequences_df.shape[0] - len(sp_sequence_ids_list))
+        assert len(sp_sequence_ids_list) == sequences_df.shape[0]
+
+        sequences_df.drop(columns="seq_id", inplace=True)
+        sequences_df["seq_id"] = pd.Series(sp_sequence_ids_list)
+
+    to_return = sequences_df
     return to_return

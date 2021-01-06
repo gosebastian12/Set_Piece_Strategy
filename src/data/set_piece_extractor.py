@@ -208,13 +208,13 @@ def set_piece_sequences_compiler(
     Parameters
     ----------
     initiating_events : Pandas DataFrame or None
-	    This argument allows the user to specify which initiating events
-	    to use when compiling the data set of set piece sequences. Its
-	    default value is None which results in this function calling
-	    `set_piece_initating_events_extractor` with its default values.
-	    If this is not the behavior the user desires, then they must
-	    specify a different collection of initiating events with this
-	    argument.
+            This argument allows the user to specify which initiating events
+            to use when compiling the data set of set piece sequences. Its
+            default value is None which results in this function calling
+            `set_piece_initating_events_extractor` with its default values.
+            If this is not the behavior the user desires, then they must
+            specify a different collection of initiating events with this
+            argument.
     do_backup : Boolean
         This argument allows the user to specify whether or not the function
         will save all of the set piece sequence data-frames in a directory
@@ -285,22 +285,22 @@ def set_piece_sequences_compiler(
             # else:
             #     pass
         dfs_comp = pd.concat(
-        	objs=dfs_list,
-        	keys=range(1, len(dfs_list) + 1)
+            objs=dfs_list,
+            keys=range(1, len(dfs_list) + 1)
         )
 
         df_to_write = dfs_comp.reset_index().drop(
-        	columns="level_1").rename(columns={"level_0": "seq_id"})
+            columns="level_1").rename(columns={"level_0": "seq_id"})
         df_to_write.to_hdf(
-        	path_or_buf="{}/comp_{}.h5".format(backup_dir_path,
-        		                               file_num),
-        	key="df",
-        	mode="w"
+            path_or_buf="{}/comp_{}.h5".format(backup_dir_path,
+                                               file_num),
+            key="df",
+            mode="w"
         )
 
     else:
         sequences_dfs_list = [
-            set_piece_sequence_generator(event) \
+            set_piece_sequence_generator(event)
             for event in initiating_event_ids
         ]
 
