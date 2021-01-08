@@ -218,7 +218,7 @@ def cluster_counts(
 
     # Finally, validate and return the result.
     assert np.isclose(nevents_counts_df.nevent_count.sum(), 1)
-    # assert np.isclose(nsub_events_counts_df.nsub_event_count.sum(), 1)
+    assert np.isclose(nsub_events_counts_df.nsub_event_count.sum(), 1)
 
     to_return = (nevents_counts_df, nsub_events_counts_df)
 

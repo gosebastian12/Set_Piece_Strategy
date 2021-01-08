@@ -5,6 +5,7 @@
 **/.DS_Store
 src.egg-info/
 env/
+**/dask-worker-space/
 
 # Large data files
 data/raw/events/*.json

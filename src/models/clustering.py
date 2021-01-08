@@ -16,13 +16,17 @@ import os
 
 # data manipulation
 import numpy as np
+from dask.distributed import Client
 
 # ML related packages
+import joblib
 import kneed
+from sklearn.externals.joblib import parallel_backend
 from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
+DASK_CLIENT = Client()
 
 
 ################################
@@ -156,13 +160,20 @@ def meanshift_cluster(training_x: np.array):
     # Next, instantiate the model.
     bandwidth = estimate_bandwidth(X=training_x,
                                    quantile=0.3,
-                                   n_samples=1000,
+                                   n_samples=100,
                                    random_state=5569,
                                    n_jobs=-1)
-    mean_shift = MeanShift(bandwidth=bandwidth, n_jobs=-1)
+    mean_shift = MeanShift(bandwidth=bandwidth, 
+    	                   n_jobs=-1,
+    	                   bin_seeding=True,
+    	                   min_bin_freq=20)
 
     # Fit the model and then return that updated model object.
-    mean_shift.fit(training_x)
+    with parallel_backend("dask"):
+    	mean_shift.fit(training_x)
+    DASK_CLIENT.close()
+
+    to_return = mean_shift
 
     return to_return
 
