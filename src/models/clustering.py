@@ -36,26 +36,37 @@ def kmeans_cluster(training_x: np.array, get_best_num_clusters=True):
     """
     Purpose
     -------
-    The purpose of this function is to
+    The purpose of this function is to contain all of the code that comprises
+    the pipeline of data validation and pre-processing to ultimately train
+    a K-Means Clustering model.
 
     Parameters
     ----------
     training_x : Numpy Array
-    	This argument allows the user to specify
+    	This argument allows the user to specify the collection of data
+    	that will be used to train the K Means model. This array follows
+    	the convention of the rows representing different training instances
+    	and the columns representing different features.
     get_best_num_clusters : Boolean
-    	This argument allows the user to specify
+    	This argument allows the user to specify whether or not the function
+    	will simply train a single K Means model with a specified number
+    	of clusters or will train several and return the model that is
+    	deemed to yield the best clustering using the "Elbow Method".
 
     	The value of this parameter defaults to `True`.
 
     Returns
     -------
-    to_return :
-    	This function returns a
+    to_return : Sklearn model object
+    	This function returns a Sklearn model that represents the K Means
+    	model that the function recommends for the user to use in future
+    	work.
 
     Raises
     ------
     ValueError
-        This error is raised when
+        This error is raised when the user passes in incorrect data types
+        to the parameters of this function.
 
     References
     ----------
@@ -118,25 +129,30 @@ def meanshift_cluster(training_x: np.array):
     """
     Purpose
     -------
-
-    Parameters
-    ----------
-    The purpose of this function is to
+    The purpose of this function is to contain all of the code that comprises
+    the pipeline of data validation and pre-processing to ultimately train
+    a Mean-Shift model using a Dask client.
 
     Parameters
     ----------
     training_x : Numpy Array
-    	This argument allows the user to specify
+    	This argument allows the user to specify the collection of data
+    	that will be used to train the Mean Shift model. This array follows
+    	the convention of the rows representing different training instances
+    	and the columns representing different features.
 
     Returns
     -------
-    to_return :
-    	This function returns a
+    to_return : Sklearn model object
+    	This function returns a Sklearn model that represents the Mean
+    	Shift model that the function recommends for the user to use in
+    	future work.
 
     Raises
     ------
     ValueError
-    	This error is raised when
+    	This error is raised when the user passes in incorrect data types
+        to the parameters of this function.
 
     References
     ----------
@@ -176,33 +192,3 @@ def meanshift_cluster(training_x: np.array):
     to_return = mean_shift
 
     return to_return
-
-
-# def hi() ->:
-# 	"""
-# 	Purpose
-# 	-------
-# 	The purpose of this function is to
-
-# 	Parameters
-# 	----------
-# 	arg_1 :
-# 		This argument allows the user to specify
-
-# 	Returns
-# 	-------
-# 	to_return :
-# 		This function returns a
-
-# 	Raises
-# 	------
-
-# 	References
-# 	----------
-# 	1.
-# 	"""
-# 	to_return = None
-
-# 	# First,
-
-# 	return to_return

@@ -37,29 +37,34 @@ def cluster_events_extractor(
     """
     Purpose
     -------
-    The purpose of this function is to
+    The purpose of this function is to take all of the events that make up
+    the set piece sequences that we have data for and an ID that specifies
+    the cluster of interest and return all of the events that whose set
+    piece sequence falls into that cluster.
 
     Parameters
     ----------
     feat_pred_df : pd.DataFrame
         Short for feature-prediction dataframe, this argument allows the
-        user to specify
+        user to specify the entire collection of events and set piece
+        sequences that we have data for.
     cluster_id : int
-        This argument allows the user to specify
+        This argument allows the user to specify the ID of the cluster
+        that we would like to use to filter out the events passed to the
+        `feat_pred_df` argument.
 
     Returns
     -------
     to_return : pd.DataFrame
-        This function returns a
+        This function returns a new Pandas DataFrame that is a collection
+        of all of the events (and thus set piece sequences) that belong
+        to the cluster of interest.
 
     Raises
     ------
     ValueError
-        This error is raised when
-
-    References
-    ----------
-    1.
+        This error is raised when the user passes in incorrect data types
+        to the parameters of this function.
     """
     to_return = None
     # First, validate the input data.
@@ -104,28 +109,37 @@ def cluster_events_extractor(
 
 
 def cluster_counts(
-        cluster_events_df: pd.DataFrame) -> pd.DataFrame:
+        cluster_events_df: pd.DataFrame) -> tuple:
     """
     Purpose
     -------
-    The purpose of this function is to
+    The purpose of this function is to take all of the events corresponding
+    to a particular cluster and create two new dataframes that contain all
+    of the type and subtype event possibilities and their corresponding
+    counts in the cluster event data respectively. The function is set up
+    in this way because the output is perfectly suited for use with Plotly
+    Express bar chart function (see `basic_viz` script that is found in 
+    this directory).
 
     Parameters
     ----------
     cluster_events_df : Pandas DataFrame
-        This argument allows the user to specify
-    subevent_count : Boolean
-        This argument allows the user to specify
+        This argument allows the user to specify the collection of events
+        that belong to the cluster of interest.
 
     Returns
     -------
-    to_return : Pandas DataFrame
-        This function returns a
+    to_return : tuple of two Pandas DataFrame
+        This function returns a tuple that contains two Pandas DataFrames.
+        The first DataFrame corresponds to the count values for all of the
+        possible event types while the second DataFrame corresponds to the
+        count values for all of the possible sub-event types
 
     Raises
     ------
     ValueError
-        This error is raised when
+        This error is raised when the user passes in incorrect data types
+        to the parameters of this function.
 
     References
     ----------
@@ -223,38 +237,3 @@ def cluster_counts(
     to_return = (nevents_counts_df, nsub_events_counts_df)
 
     return to_return
-
-
-# def hi() ->:
-# 	"""
-# 	Purpose
-# 	-------
-# 	The purpose of this function is to
-
-# 	Parameters
-# 	----------
-# 	arg_1
-# 		This argument allows the user to specify
-
-# 	Returns
-# 	-------
-# 	to_return :
-# 		This function returns a
-
-# 	Raises
-# 	------
-# 	Error
-# 		This error is raised when
-
-# 	References
-# 	----------
-# 	1.
-# 	"""
-# 	to_return = None
-# 	# First, validate the input data.
-
-# 	# Next,
-
-# 	# Finally, validate and return the result.
-
-# 	return to_return

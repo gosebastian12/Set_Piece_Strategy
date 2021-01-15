@@ -32,16 +32,76 @@ from src.visualizations import cluster_bar_chart_prep as cbcp
 SCRIPT_DIR = os.path.dirname(__file__)
 RANDOM_FIG, RANDOM_AX = plt.subplots()
 RANDOM_FIG.clear()
+AXES_TYPE = type(RANDOM_AX)
 
 
 ################################
 ### Define Modular Functions ###
 ################################
+def adjust_plot_ticks(axes_obj: AXES_TYPE) -> AXES_TYPE:
+    """
+    Purpose
+    -------
+    The purpose of this function is to take a just-instantiated Matplotlib
+    `axis` object and update its attributes related to its tick marks to
+    have its resulting figure look more appealing.
+
+    Parameters
+    ----------
+    axes_obj : Matplotlib `axis` object
+        This parameter allows the user to specify the Matplotlib `axis`
+        object whose tick mark attributes it would like to have updated.
+
+    Returns
+    -------
+    to_return : Matplotlib `axis` object
+        This function returns the Matplotlib `axis` object it received
+        where its tick mark parameters have been updated.
+
+    Raises
+    ------
+    ValueError
+        This error is raised when the user passes in an object to the
+        `axes_obj` that is not a Matplotlib `axis` object.
+    """
+    to_return = None
+    # First, validate the input data.
+    try:
+        assert isinstance(axes_obj, AXES_TYPE)
+    except AssertionError:
+        err_msg = "The type of the received object to the `axes_obj` parameter\
+        is `{}`. Note that this function only accepts Matplotlib `axis`\
+        objects to this parameter.".format(type(axes_obj))
+
+        print(err_msg)
+        raise ValueError
+
+    # Next, update the tick mark attributes of the received `axis` object.
+    axes_obj.minorticks_on()
+    axes_obj.tick_params(axis="both",
+                         which="major",
+                         direction="in",
+                         top=True,
+                         right=True,
+                         length=7)
+    axes_obj.tick_params(axis="both",
+                         which="minor",
+                         direction="in",
+                         top=True,
+                         right=True,
+                         length=3)
+    to_return = axes_obj
+
+    return to_return
+
 def create_graph(figure_size=None, nrow=1, ncol=1) -> tuple:
     """
     Purpose
     -------
-    The purpose of this function is to
+    The purpose of this function is to instantiate Matplotlib `figure`
+    and `axis` objects/a Numpy `array` of `axis` objects whose attributes
+    have been updated to allow the resulting graph to be more visually
+    appealing.
 
     Parameters
     ----------
@@ -54,11 +114,12 @@ def create_graph(figure_size=None, nrow=1, ncol=1) -> tuple:
         size of the instantiated `figure` object is `(21,10)`.
     nrow : int
         This parameter allows the user to specify how many rows of figures
-        with
+        with which to create the instantiated subplot.
 
         The default value for this parameter is `1`.
     ncol : int
-        This parameter allows the user to specify
+        This parameter allows the user to specify how many columns of
+        figures with which to create the instantiated subplot.
 
         The default value for this parameter is `1`.
 
@@ -72,7 +133,8 @@ def create_graph(figure_size=None, nrow=1, ncol=1) -> tuple:
     Raises
     ------
     ValueError
-        This error is raised when
+        This error is raised when the user does not pass in the correct
+        data types to the parameters of this function.
 
     References
     ----------
@@ -109,56 +171,19 @@ def create_graph(figure_size=None, nrow=1, ncol=1) -> tuple:
     fig, axes = plt.subplots(figsize=figsize, nrows=nrow, ncols=ncol)
 
     # Pretty up the graph's appearance.
-    #fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
     fig.subplots_adjust(hspace=0.275, wspace=0.075)
 
-    if isinstance(axes, type(RANDOM_AX)):
-        axes.minorticks_on()
-        axes.tick_params(axis="both",
-                         which="major",
-                         direction="in",
-                         top=True,
-                         right=True,
-                         length=7)
-        axes.tick_params(axis="both",
-                         which="minor",
-                         direction="in",
-                         top=True,
-                         right=True,
-                         length=3)
+    if isinstance(axes, AXES_TYPE):
+        adjust_plot_ticks(axes_obj=axes)
     else:
         if all([nrow > 1, ncol > 1]):
             assert axes.shape == (nrow, ncol)
             for i in range(axes.shape[0]):
                 for j in range(axes.shape[1]):
-                    axes[i, j].minorticks_on()
-                    axes[i, j].tick_params(axis="both",
-                                           which="major",
-                                           direction="in",
-                                           top=True,
-                                           right=True,
-                                           length=7)
-                    axes[i, j].tick_params(axis="both",
-                                           which="minor",
-                                           direction="in",
-                                           top=True,
-                                           right=True,
-                                           length=3)
+                    adjust_plot_ticks(axes_obj=axes[i, j])
         else:
             for i in range(axes.size):
-                axes[i].minorticks_on()
-                axes[i].tick_params(axis="both",
-                                    which="major",
-                                    direction="in",
-                                    top=True,
-                                    right=True,
-                                    length=7)
-                axes[i].tick_params(axis="both",
-                                    which="minor",
-                                    direction="in",
-                                    top=True,
-                                    right=True,
-                                    length=3)
+                adjust_plot_ticks(axes_obj=axes[i])
 
     # Return result
     to_return = (fig, axes)
@@ -167,9 +192,9 @@ def create_graph(figure_size=None, nrow=1, ncol=1) -> tuple:
 
 
 def add_scatter_to_ax_obj(
-        ax_obj: type(RANDOM_AX), x_data: np.array, y_data: np.array,
+        ax_obj: AXES_TYPE, x_data: np.array, y_data: np.array,
         color_arr: np.array, x_lab: str, y_lab: str,
-        title_lab: str) -> type(RANDOM_AX):
+        title_lab: str) -> AXES_TYPE:
     """
     Purpose
     -------
@@ -208,7 +233,7 @@ def add_scatter_to_ax_obj(
 
     Returns
     -------
-    to_return :
+    to_return : Matplotlib `axis` object
         This function returns the same axis object it received in the
         `ax_obj` argument, but with updated attribute values as a result
         of making the scatter plot with all of its labels.
@@ -237,7 +262,7 @@ def add_scatter_to_ax_obj(
     """
     to_return = None
     # First, validate the input data
-    assert isinstance(ax_obj, type(RANDOM_AX))
+    assert isinstance(ax_obj, AXES_TYPE)
     assert all(
         [isinstance(x_data, np.ndarray),
          isinstance(y_data, np.ndarray),
@@ -283,20 +308,31 @@ def cluster_subplot_generator(
     """
     Purpose
     -------
-    The purpose of this function is to
+    The purpose of this function is to take the feature data used to train
+    a classification model and its resulting class predictions and create
+    a series of plots all displayed in a single subplot that allows for a
+    visualization of the results of that classification model.
 
     Parameters
     ----------
     feature_data : Numpy Array
-        This argument allows the user to specify
+        This argument allows the user to specify the collection of data
+        used to train the model whose class predictions are specified to
+        the `predicted_labels` argument.
     predicted_labels: Numpy Array
-        This argument allows the user to specify
+        This argument allows the user to specify the collection of class
+        predictions that correspond to the training data specified to the
+        `feature_data` parameter.
     plot_objs : None or tuple
-        This argument allows the user to specify
+        This argument allows the user to specify the Matplotlib `figure`
+        and `axis` objects to use to generate the subplot. 
 
-        This parameter defaults to `None`.
+        This parameter defaults to `None`. When the parameter takes on
+        this value, then a subplot of size 30 by 23, 4 rows, and 2 columns
+        will be used.
     save_plot : Boolean
-        This argument allows the user to specify
+        This argument allows the user to specify whether or not the function
+        will save the plot that it generates.
 
         This parameter defaults to `False`.
     **kwargs : dict
@@ -307,13 +343,22 @@ def cluster_subplot_generator(
 
     Returns
     -------
-    to_return :
-        This function
+    to_return : None
+        This function does not return anything since its main purpose is
+        to simply display its results.
 
     Raises
     ------
     ValueError
-        This error is raised when
+        This error is raised for one of two reasons:
+            1. When the user does not specify the correct data type for
+               each of the objects they pass to this function's parameters.
+            2. When the user specifies the `save_plot` parameter to true,
+               but does NOT specify a file name for the file that the
+               saved plot will be written to.
+    AssertionError
+        This error is raised when various quality-control checks fail
+        as the function is generating the TSNE graph.
 
     References
     ----------
@@ -475,24 +520,53 @@ def plotly_bar_chart(count_df: pd.DataFrame, args_dict: dict, cluster_id: int):
     """
     Purpose
     -------
-    The purpose of this function is to
+    The purpose of this function is to take a Pandas DataFrame that specifies
+    event types in one column, the number of occurrences for that event
+    in the cluster of interest in the second column, and a normalized
+    version of that second column in the third column and creates a bar
+    chart that visually displays those count values. The bar chart is
+    created using Plotly as the name of this function indicates.
 
     Parameters
     ----------
     count_df : Pandas DataFrame
-        This argument allows the user to specify
+        This argument allows the user to specify the data frame whose
+        required information is outlined in the Purpose section of this
+        function.
     args_dict : Dictionary
-        This argument allows the user to specify
+        This argument allows the user to specify three important values
+        that this function needs to create its bar chart. For the sake
+        of uniformity, its keys must have the values `"x"`, `"y"`, and
+        `"text"`:
+            1. The value corresponding to the `"x"` key specifies a string
+               that contains the label of the column whose values will be
+               displayed along the x-axis of the bar chart; in this case
+               the event type labels. 
+            2. The value corresponding to the `"y"` key specifies a string
+               that contains the label of the column whose values will be
+               displayed along the y-axis; in this case, the normalized
+               counts for each event type.
+            3. The value corresponding to the `"text"` key specifies a
+               string that contains the label of the column whose values
+               will be displayed as text a the top of each bar in the bar
+               chart; in this case, the un-normalized counts for each
+               event type.
+    cluster_id : int
+        This argument allows the user to specify the ID of the cluster
+        of interest that this bar chart corresponds to. All this is used
+        for is to create the title of the bar chart.
 
     Returns
     -------
-    to_return :
-        This function returns
+    to_return : Plotly `bar` object.
+        This function returns the Plotly `bar` object that is being displayed
+        to the user in the event that they would like to manipulate further.
 
     Raises
     ------
     ValueError
-        This error is raised when
+        This error is raised when the user does not pass in the correct
+        data types to the parameters of this function.
 
     References
     ----------
@@ -505,7 +579,9 @@ def plotly_bar_chart(count_df: pd.DataFrame, args_dict: dict, cluster_id: int):
     try:
         assert isinstance(count_df, pd.DataFrame)
     except AssertionError:
-        err_msg = "The "
+        err_msg = "The received object to the `count_df` object was `{}`.\
+        Note that this parameter only accepts Pandas DataFrames.\
+        ".format(type(count_df))
 
         print(err_msg)
         raise ValueError
