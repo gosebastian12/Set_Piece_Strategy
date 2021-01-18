@@ -24,6 +24,9 @@ import kneed
 from sklearn.externals.joblib import parallel_backend
 from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth
 
+# custom modules
+from src.test import input_parameter_validation as ipv
+
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
 DASK_CLIENT = Client()
@@ -43,30 +46,31 @@ def kmeans_cluster(training_x: np.array, get_best_num_clusters=True):
     Parameters
     ----------
     training_x : Numpy Array
-    	This argument allows the user to specify the collection of data
-    	that will be used to train the K Means model. This array follows
-    	the convention of the rows representing different training instances
-    	and the columns representing different features.
+        This argument allows the user to specify the collection of data
+        that will be used to train the K Means model. This array follows
+        the convention of the rows representing different training instances
+        and the columns representing different features.
     get_best_num_clusters : Boolean
-    	This argument allows the user to specify whether or not the function
-    	will simply train a single K Means model with a specified number
-    	of clusters or will train several and return the model that is
-    	deemed to yield the best clustering using the "Elbow Method".
+        This argument allows the user to specify whether or not the function
+        will simply train a single K Means model with a specified number
+        of clusters or will train several and return the model that is
+        deemed to yield the best clustering using the "Elbow Method".
 
-    	The value of this parameter defaults to `True`.
+        The value of this parameter defaults to `True`.
 
     Returns
     -------
     to_return : Sklearn model object
-    	This function returns a Sklearn model that represents the K Means
-    	model that the function recommends for the user to use in future
-    	work.
+        This function returns a Sklearn model that represents the K Means
+        model that the function recommends for the user to use in future
+        work.
 
     Raises
     ------
     ValueError
-        This error is raised when the user passes in incorrect data types
-        to the parameters of this function.
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
 
     References
     ----------
@@ -75,24 +79,10 @@ def kmeans_cluster(training_x: np.array, get_best_num_clusters=True):
     to_return = None
 
     # First, validate the input data.
-    try:
-        assert isinstance(training_x, np.ndarray)
-    except AssertionError:
-        err_msg = "The data type of the object passed in to the `training_x`\
-		argument is invalid. It must be a Numpy Array; received type `{}`\
-		instead.".format(type(training_x))
-
-        print(err_msg)
-        raise ValueError
-    try:
-        assert isinstance(get_best_num_clusters, bool)
-    except AssertionError:
-        err_msg = "The data type of the value passed in to the `get_best_num_clusters`\
-		argument is invalid. It must be of type `Boolean`. Received type\
-		`{}` instead.".format(type(get_best_num_clusters))
-
-        print(err_msg)
-        raise ValueError
+    ipv.parameter_type_validator(expected_type=np.ndarray,
+                                 parameter_var=training_x)
+    ipv.parameter_type_validator(expected_type=bool,
+                                 parameter_var=get_best_num_clusters)
 
     # Next, instantiate the model.
     if get_best_num_clusters:
@@ -136,23 +126,24 @@ def meanshift_cluster(training_x: np.array):
     Parameters
     ----------
     training_x : Numpy Array
-    	This argument allows the user to specify the collection of data
-    	that will be used to train the Mean Shift model. This array follows
-    	the convention of the rows representing different training instances
-    	and the columns representing different features.
+        This argument allows the user to specify the collection of data
+        that will be used to train the Mean Shift model. This array follows
+        the convention of the rows representing different training instances
+        and the columns representing different features.
 
     Returns
     -------
     to_return : Sklearn model object
-    	This function returns a Sklearn model that represents the Mean
-    	Shift model that the function recommends for the user to use in
-    	future work.
+        This function returns a Sklearn model that represents the Mean
+        Shift model that the function recommends for the user to use in
+        future work.
 
     Raises
     ------
     ValueError
-    	This error is raised when the user passes in incorrect data types
-        to the parameters of this function.
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
 
     References
     ----------
@@ -163,15 +154,8 @@ def meanshift_cluster(training_x: np.array):
     to_return = None
 
     # First, validate the input data.
-    try:
-        assert isinstance(training_x, np.ndarray)
-    except AssertionError:
-        err_msg = "The data type of the object passed in to the `training_x`\
-		argument is invalid. It must be a Numpy Array; received type `{}`\
-		instead.".format(type(training_x))
-
-        print(err_msg)
-        raise ValueError
+    ipv.parameter_type_validator(expected_type=np.ndarray,
+                                 parameter_var=training_x)
 
     # Next, instantiate the model.
     bandwidth = estimate_bandwidth(X=training_x,
@@ -179,14 +163,14 @@ def meanshift_cluster(training_x: np.array):
                                    n_samples=100,
                                    random_state=5569,
                                    n_jobs=-1)
-    mean_shift = MeanShift(bandwidth=bandwidth, 
-    	                   n_jobs=-1,
-    	                   bin_seeding=True,
-    	                   min_bin_freq=20)
+    mean_shift = MeanShift(bandwidth=bandwidth,
+                           n_jobs=-1,
+                           bin_seeding=True,
+                           min_bin_freq=20)
 
     # Fit the model and then return that updated model object.
     with parallel_backend("dask"):
-    	mean_shift.fit(training_x)
+        mean_shift.fit(training_x)
     DASK_CLIENT.close()
 
     to_return = mean_shift

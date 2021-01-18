@@ -22,6 +22,7 @@ import swifter
 
 # custom modules
 from src.data import common_tasks as ct
+from src.test import input_parameter_validation as ipv
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -47,7 +48,7 @@ def position_engineer(row) -> list:
     Parameters
     ----------
     row : row of a Pandas DataFrame
-        This argument allows the user to specify which row instance they 
+        This argument allows the user to specify which row instance they
         are working with as the `apply()` iteratively gets applied to
         each row of the sequence DataFrame.
 
@@ -515,15 +516,8 @@ def num_attacking_events_engineer(
     to_return = None
 
     # First, validate the input data.
-    try:
-        assert isinstance(sequence_events_df, pd.DataFrame)
-    except AssertionError:
-        err_msg = "The object passed to the argument `sequence_events_df`\
-        is of type `{}`. This argument only accepts Pandas\
-        DataFrames.".format(type(sequence_events_df))
-
-        print(err_msg)
-        raise ValueError
+    ipv.parameter_type_validator(expected_type=pd.DataFrame,
+                                 parameter_var=sequence_events_df)
 
     try:
         assert sequence_events_df.iloc[0].eventId == 3
@@ -638,17 +632,8 @@ def basic_instance_features(
     to_return = None
 
     # First, validate the input data.
-    try:
-        assert isinstance(events_data_set, pd.DataFrame)
-    except (AssertionError, IndexError):
-        # If the user did not specify the sequence dataset in a Pandas
-        # DataFrame.
-        err_msg = "The passed-in value of the `events_data_set` argument\
-		must be a Pandas DataFrame. The received type was\
-        `{}`".format(type(events_data_set))
-
-        print(err_msg)
-        raise ValueError
+    ipv.parameter_type_validator(expected_type=pd.DataFrame,
+                                 parameter_var=events_data_set)
 
     # Before we run any of the feature engineering functions, let's first
     # save relevant information that we will potentially need to identify

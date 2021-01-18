@@ -20,6 +20,9 @@ from base64 import b64encode
 import pandas as pd
 import numpy as np
 
+# custom modules
+from src.test import input_parameter_validation as ipv
+
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
 
@@ -56,6 +59,13 @@ def authentication_header_generator(
         "Authorization: Basic {xxxxxx}" where the last part is a
         base64-encoded version of "{user_name}:{password}".
 
+    Raises
+    ------
+    ValueError
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
+
     References
     ----------
     1. https://stackabuse.com/encoding-and-decoding-base64-strings-in-python/
@@ -65,8 +75,8 @@ def authentication_header_generator(
     to_return = None
     # First, validate the inputted data and define the non-decoded version
     # of the authentication header.
-    assert isinstance(user_name, str)
-    assert isinstance(password, str)
+    ipv.parameter_type_validator(expected_type=str, parameter_var=user_name)
+    ipv.parameter_type_validator(expected_type=str, parameter_var=password)
 
     raw_auth_str = "{}:{}".format(user_name, password)
 
@@ -118,8 +128,12 @@ def raw_event_data(league_name: str) -> pd.DataFrame:
     Raises
     ------
     ValueError
-        Such an error is raised when the user does not specify one of the
-        accepted values for the `league_name` argument.
+        Such an error is raised when:
+            1. This error is raised when the user, for at least one
+               parameter, passes in an object whose type is not among the
+               accepted types for that parameter.
+            2. The user does not specify one of the accepted values for
+               the `league_name` argument.
     FileNotFoundError
         Such an error is raised when the function cannot locate the directory
         that contains the event data for the specified league. This may
@@ -133,6 +147,8 @@ def raw_event_data(league_name: str) -> pd.DataFrame:
     """
     to_return = None
     # First, let's validate the input data.
+    ipv.parameter_type_validator(expected_type=str, parameter_var=league_name)
+
     available_leagues = ["england",
                          "france",
                          "spain",
@@ -215,9 +231,24 @@ def event_id_mapper(rel_path=None) -> pd.DataFrame:
     to_return : Pandas DataFrame
         This function returns a Pandas DataFrame that contains all of the
         contents loaded in from the Event ID Mapper CSV.
+
+    Raises
+    ------
+    ValueError
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
+    FileNotFoundError
+        This error is raised when the function attempts to navigate to a
+        directory that it thinks the event id mapper file exists but that,
+        in reality, is not a valid directory.
     """
     to_return = None
-    # First, let's navigate to the appropriate directory.
+    # First, validate the input data
+    ipv.parameter_type_validator(expected_type=(str, type(None)),
+                                 parameter_var=rel_path)
+
+    # Next, let's navigate to the appropriate directory.
     mapper_rel_dir = "../../data/raw/" if not rel_path else rel_path
     mapper_dir = os.path.join(SCRIPT_DIR, mapper_rel_dir)
 
@@ -257,9 +288,24 @@ def player_data(rel_path=None) -> pd.DataFrame:
     to_return : Pandas DataFrame
         This function returns a Pandas DataFrame that contains all of the
         contents loaded in from the players data set.
+
+    Raises
+    ------
+    ValueError
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
+    FileNotFoundError
+        This error is raised when the function attempts to navigate to a
+        directory that it thinks the event id mapper file exists but that,
+        in reality, is not a valid directory.
     """
     to_return = None
-    # First, let's navigate to the appropriate directory.
+    # First, validate the input data.
+    ipv.parameter_type_validator(expected_type=(str, type(None)),
+                                 parameter_var=rel_path)
+
+    # Next, let's navigate to the appropriate directory.
     player_rel_dir = "../../data/raw/" if not rel_path else rel_path
     player_dir = os.path.join(SCRIPT_DIR, player_rel_dir)
 
@@ -317,13 +363,23 @@ def matches_data(league_name: str, rel_path=None) -> pd.DataFrame:
     ValueError
         Such an error is raised when the user does not specify one of the
         accepted values for the `league_name` argument.
+    FileNotFoundError
+        This error is raised when the function attempts to navigate to a
+        directory that it thinks the event id mapper file exists but that,
+        in reality, is not a valid directory.
 
     References
     ----------
     1. https://discuss.analyticsvidhya.com/t/how-to-read-zip-file-directly-in-python/1659
     """
     to_return = None
-    # First, let's navigate to the appropriate directory.
+    # First, validate the input data.
+    ipv.parameter_type_validator(expected_type=str,
+                                 parameter_var=league_name)
+    ipv.parameter_type_validator(expected_type=(type(None), str),
+                                 parameter_var=rel_path)
+
+    # Next, let's navigate to the appropriate directory.
     matches_rel_dir = "../../data/raw/" if not rel_path else rel_path
     matches_dir = os.path.join(SCRIPT_DIR, matches_rel_dir)
 
@@ -421,20 +477,13 @@ def sequence_data(with_scores=True) -> pd.DataFrame:
     Raises
     ------
     ValueError
-        This error is raised when the user does not passed in an object
-        of accepted data type to the `with_scores` argument.
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
     """
     to_return = None
     # First, validate the input data.
-    try:
-        assert isinstance(with_scores, bool)
-    except BaseException:
-        error_msg = "The parameter `with_scores` only accepts objects of\
-        type `Boolean`. Instead, an object of type `{}` was passed to the\
-        argument.".format(type(with_scores))
-
-        print(error_msg)
-        raise ValueError
+    ipv.parameter_type_validator(expected_type=bool, parameter_var=with_scores)
 
     # Next, load in the data as specified by the user.
     if with_scores:

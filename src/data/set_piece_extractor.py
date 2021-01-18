@@ -22,6 +22,7 @@ import numpy as np
 # custom modules
 from src.data import common_tasks as ct
 from src.data import set_piece_ending_checker as check
+from src.test import input_parameter_validation as ipv
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -41,7 +42,7 @@ def set_piece_initating_events_extractor(
 
     Parameters
     ----------
-    type_to_return : list
+    type_to_return : str
         This argument allows the user to specify how the function will
         return its result. The available options are:
             1. "list" which will result in the function giving the IDs
@@ -67,13 +68,14 @@ def set_piece_initating_events_extractor(
     Raises
     ------
     ValueError
-        This error is raised when the value and/or type of the passed-in
-        values for `type_to_return` and `events_data` respectively are
-        not correct. See the Parameters section for what are accepted values
-        and types for these arguments.
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
     """
     to_return = None
     # First, validate the input data.
+    ipv.parameter_type_validator(expected_type=str,
+                                 parameter_var=type_to_return)
     accepted_return_types = ["list", "dataframe"]
     normed_type_to_return = "".join(type_to_return.lower().split())
     try:
@@ -86,12 +88,8 @@ def set_piece_initating_events_extractor(
         print(err_msg)
         raise ValueError
 
-    try:
-        assert isinstance(events_data, pd.DataFrame)
-    except AssertionError:
-        err_msg = "This function requires that the passed-in value for\
-		the `events_data` argument be an instance of `pd.DataFrame`. The\
-		received type was `{}`".format(type(events_data))
+    ipv.parameter_type_validator(expected_type=pd.DataFrame,
+                                 parameter_var=events_data)
 
     # Now extract the events that correspond to the beginning of set pieces.
     beginning_of_sps_df = events_data[events_data.eventId == 3]
@@ -131,6 +129,10 @@ def set_piece_sequence_generator(
 
     Raises
     ------
+    ValueError
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
     AssertionError
         This error is raised when the function determines that none of
         the tests ran to determine when and why the set piece sequence of
@@ -140,7 +142,7 @@ def set_piece_sequence_generator(
     """
     to_return = None
     # First, validate the input data.
-    ct.id_checker(set_piece_start_id)
+    ipv.id_checker(set_piece_start_id)
 
     # Next, run all of the tests to see how and when the set piece sequence
     # ended.
@@ -230,6 +232,13 @@ def set_piece_sequences_compiler(
         set piece sequence it finds. These IDs can be found in the new
         column `sequence_id`.
 
+    Raises
+    ------
+    ValueError
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
+        
     References
     ----------
     1. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
@@ -237,7 +246,12 @@ def set_piece_sequences_compiler(
     3. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_hdf.html
     """
     to_return = None
-    # First, set the necessary variables using the settings specified by
+    # First, validate the input data
+    ipv.parameter_type_validator(expected_type=(pd.DataFrame, type(None)),
+                                 parameter_var=initiating_events)
+    ipv.parameter_type_validator(expected_type=bool, parameter_var=do_backup)
+
+    # Next, set the necessary variables using the settings specified by
     # the user.
     if isinstance(initiating_events, type(None)):
         # If the user has left the `initiating_events` to its

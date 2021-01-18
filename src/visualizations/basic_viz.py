@@ -26,10 +26,11 @@ import plotly.express as px
 from sklearn.manifold import TSNE
 
 # custom modules
-from src.visualizations import cluster_bar_chart_prep as cbcp
+from src.test import input_parameter_validation as ipv
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
+
 RANDOM_FIG, RANDOM_AX = plt.subplots()
 RANDOM_FIG.clear()
 AXES_TYPE = type(RANDOM_AX)
@@ -61,20 +62,14 @@ def adjust_plot_ticks(axes_obj: AXES_TYPE) -> AXES_TYPE:
     Raises
     ------
     ValueError
-        This error is raised when the user passes in an object to the
-        `axes_obj` that is not a Matplotlib `axis` object.
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
     """
     to_return = None
     # First, validate the input data.
-    try:
-        assert isinstance(axes_obj, AXES_TYPE)
-    except AssertionError:
-        err_msg = "The type of the received object to the `axes_obj` parameter\
-        is `{}`. Note that this function only accepts Matplotlib `axis`\
-        objects to this parameter.".format(type(axes_obj))
-
-        print(err_msg)
-        raise ValueError
+    ipv.parameter_type_validator(expected_type=AXES_TYPE,
+                                 parameter_var=axes_obj)
 
     # Next, update the tick mark attributes of the received `axis` object.
     axes_obj.minorticks_on()
@@ -93,6 +88,7 @@ def adjust_plot_ticks(axes_obj: AXES_TYPE) -> AXES_TYPE:
     to_return = axes_obj
 
     return to_return
+
 
 def create_graph(figure_size=None, nrow=1, ncol=1) -> tuple:
     """
@@ -133,8 +129,9 @@ def create_graph(figure_size=None, nrow=1, ncol=1) -> tuple:
     Raises
     ------
     ValueError
-        This error is raised when the user does not pass in the correct
-        data types to the parameters of this function.
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
 
     References
     ----------
@@ -144,26 +141,10 @@ def create_graph(figure_size=None, nrow=1, ncol=1) -> tuple:
     """
     to_return = None
     # First, validate the input data
-    try:
-        assert any([isinstance(figure_size, type(None)),
-                    isinstance(figure_size, tuple)])
-    except AssertionError:
-        err_msg = "The type received for the `figure_size` argument is:\
-		`{}`. The only accepted data types for this argument are either\
-		`None` or `tuple`.".format(type(figure_size))
-
-        print(err_msg)
-        raise ValueError
-
-    try:
-        assert all([isinstance(nrow, int), isinstance(ncol, int)])
-    except AssertionError:
-        err_msg = "The types received for the `nrow` and `ncol` arguments\
-		are `{}` and`{}` respectively. The only accepted data type for these\
-		arguments is `int`.".format(type(nrow), type(ncol))
-
-        print(err_msg)
-        raise ValueError
+    ipv.parameter_type_validator(expected_type=(type(None), tuple),
+                                 parameter_var=figure_size)
+    ipv.parameter_type_validator(expected_type=int, parameter_var=nrow)
+    ipv.parameter_type_validator(expected_type=int, parameter_var=ncol)
 
     # Next, instantiate the figure and axes objects.
     figsize = (21, 10) if isinstance(figure_size, type(None)) \
@@ -240,19 +221,10 @@ def add_scatter_to_ax_obj(
 
     Raises
     ------
-    AssertionError
-        This error is raised when the data inputted to the function's
-        arguments is not as expected. The various possibilities include:
-            1. The object passed to the `ax_obj` argument is not a
-               Matplotlib `axis` object.
-            2. At least one of the objects passed to the arguments `x_data`,
-               `y_data`, and `color_arr` is not a Numpy Array.
-            3. The arrays passed to the `x_data` and `y_data` arguments
-               are not the same size.
-            4. The arrays passed to the `x_data` and `color_arr` arguments
-               are not the same size.
-            5. At least one of the objects passed to the arguments `x_lab`.
-               `y_lab`, and `title_lab` is not a string.
+    ValueError
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
 
     References
     ----------
@@ -260,21 +232,16 @@ def add_scatter_to_ax_obj(
     2. https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.legend.html
     3. https://matplotlib.org/3.3.3/api/_as_gen/matplotlib.pyplot.scatter.html
     """
-    to_return = None
-    # First, validate the input data
-    assert isinstance(ax_obj, AXES_TYPE)
-    assert all(
-        [isinstance(x_data, np.ndarray),
-         isinstance(y_data, np.ndarray),
-         isinstance(color_arr, np.ndarray)]
-    )
-    assert x_data.size == y_data.size
-    assert x_data.size == color_arr.size
-    assert all(
-        [isinstance(x_lab, str),
-         isinstance(y_lab, str),
-         isinstance(title_lab, str)]
-    )
+    ipv.parameter_type_validator(expected_type=AXES_TYPE, parameter_var=ax_obj)
+    ipv.parameter_type_validator(expected_type=np.ndarray,
+                                 parameter_var=x_data)
+    ipv.parameter_type_validator(expected_type=np.ndarray,
+                                 parameter_var=y_data)
+    ipv.parameter_type_validator(expected_type=np.ndarray,
+                                 parameter_var=color_arr)
+    ipv.parameter_type_validator(expected_type=str, parameter_var=x_lab)
+    ipv.parameter_type_validator(expected_type=str, parameter_var=y_lab)
+    ipv.parameter_type_validator(expected_type=str, parameter_var=title_lab)
 
     # Next, plot the given data
     scatter_obj = ax_obj.scatter(
@@ -325,7 +292,7 @@ def cluster_subplot_generator(
         `feature_data` parameter.
     plot_objs : None or tuple
         This argument allows the user to specify the Matplotlib `figure`
-        and `axis` objects to use to generate the subplot. 
+        and `axis` objects to use to generate the subplot.
 
         This parameter defaults to `None`. When the parameter takes on
         this value, then a subplot of size 30 by 23, 4 rows, and 2 columns
@@ -351,8 +318,9 @@ def cluster_subplot_generator(
     ------
     ValueError
         This error is raised for one of two reasons:
-            1. When the user does not specify the correct data type for
-               each of the objects they pass to this function's parameters.
+            1. When the user, for at least one parameter, passes in an
+               object whose type is not among the accepted types for that
+               parameter.
             2. When the user specifies the `save_plot` parameter to true,
                but does NOT specify a file name for the file that the
                saved plot will be written to.
@@ -370,31 +338,21 @@ def cluster_subplot_generator(
     to_return = None
 
     # First, validate the input data.
-    try:
-        assert isinstance(plot_objs, tuple)
-        assert len(plot_objs) == 2
+    ipv.parameter_type_validator(expected_type=np.ndarray,
+                                 parameter_var=feature_data)
+    ipv.parameter_type_validator(expected_type=np.ndarray,
+                                 parameter_var=np.ndarray)
+    ipv.parameter_type_validator(expected_type=(type(None), tuple),
+                                 parameter_var=plot_objs)
+    ipv.parameter_type_validator(expected_type=bool, parameter_var=save_plot)
+
+    # Next, define necessary variables
+    if isinstance(plot_objs, type(None)):
+        # If the user did NOT specify specify Matplotlib `figure` and `axis`
+        # objects for this function to use.
+        fig, axes = create_graph(figure_size=(30, 23), nrow=4, ncol=2)
+    else:
         fig, axes = plot_objs
-    except AssertionError:
-        err_msg = "The accepted type for the `plot_objs` argument is `tuple`\
-		which must be of length 2. Received type `{}`.".format(plot_objs)
-
-        if isinstance(plot_objs, type(None)):
-            # If the `plot_objs` is set to its default value.
-            fig, axes = create_graph(figure_size=(30, 23), nrow=4, ncol=2)
-        else:
-            print(err_msg)
-            raise ValueError
-
-    try:
-        assert feature_data.shape[1] == 10
-        assert axes.size == 8
-    except AssertionError:
-        raise ValueError
-
-    try:
-        assert feature_data.shape[0] == predicted_labels.size
-    except AssertionError:
-        raise ValueError
 
     # Next, begin creating the subplots with the feature data.
     add_scatter_to_ax_obj(
@@ -541,7 +499,7 @@ def plotly_bar_chart(count_df: pd.DataFrame, args_dict: dict, cluster_id: int):
             1. The value corresponding to the `"x"` key specifies a string
                that contains the label of the column whose values will be
                displayed along the x-axis of the bar chart; in this case
-               the event type labels. 
+               the event type labels.
             2. The value corresponding to the `"y"` key specifies a string
                that contains the label of the column whose values will be
                displayed along the y-axis; in this case, the normalized
@@ -565,8 +523,9 @@ def plotly_bar_chart(count_df: pd.DataFrame, args_dict: dict, cluster_id: int):
     Raises
     ------
     ValueError
-        This error is raised when the user does not pass in the correct
-        data types to the parameters of this function.
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
 
     References
     ----------
@@ -576,15 +535,10 @@ def plotly_bar_chart(count_df: pd.DataFrame, args_dict: dict, cluster_id: int):
     to_return = None
 
     # First, validate the input data.
-    try:
-        assert isinstance(count_df, pd.DataFrame)
-    except AssertionError:
-        err_msg = "The received object to the `count_df` object was `{}`.\
-        Note that this parameter only accepts Pandas DataFrames.\
-        ".format(type(count_df))
-
-        print(err_msg)
-        raise ValueError
+    ipv.parameter_type_validator(expected_type=pd.DataFrame,
+                                 parameter_var=count_df)
+    ipv.parameter_type_validator(expected_type=dict, parameter_var=args_dict)
+    ipv.id_checker(id_to_check=cluster_id)
 
     # Next, define necessary values that will be used later on.
     x_arg, y_arg = args_dict.get("x"), args_dict.get("y")
@@ -599,8 +553,8 @@ def plotly_bar_chart(count_df: pd.DataFrame, args_dict: dict, cluster_id: int):
 
     x_label = "Sub-Event Type Name" if is_for_subevents \
               else "Event Type Name"
-    axes_label_dict = {x_arg : x_label,
-                       y_arg : "Normalized Count"}
+    axes_label_dict = {x_arg: x_label,
+                       y_arg: "Normalized Count"}
     plot_title = \
         "Sub-Event Types Bar Chart for Cluster {}".format(cluster_id) if is_for_subevents\
         else "Event Types Bar Chart for Cluster {}".format(cluster_id)

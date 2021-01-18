@@ -22,6 +22,7 @@ from shapely.geometry import Polygon, Point
 
 # custom modules
 from src.data import common_tasks as ct
+from src.test import input_parameter_validation as ipv
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -61,6 +62,10 @@ def checker_function_set_up(
 
     Raises
     ------
+    ValueError
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
     AssertionError
         This error is raised when the user does not use the `sequence_to_use`
         argument correctly. See the Parameters section for directions
@@ -68,7 +73,9 @@ def checker_function_set_up(
     """
     to_return = None
     # First, let's validate the inputted data.
-    ct.id_checker(set_piece_start_id)
+    ipv.id_checker(set_piece_start_id)
+    ipv.parameter_type_validator(expected_type=(type(None), pd.DataFrame),
+                                 parameter_var=sequence_to_use)
 
     # Next obtain subsequent plays.
     if isinstance(sequence_to_use, type(None)):

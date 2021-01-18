@@ -23,6 +23,7 @@ import swifter
 
 # custom modules
 from src.data import data_loader as dl
+from src.test import input_parameter_validation as ipv
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -34,63 +35,6 @@ EVENTS_DF = dl.raw_event_data(league_name="all")
 ################################
 ### Define Modular Functions ###
 ################################
-def id_checker(id_to_check: int, verbose=1) -> None:
-    """
-    Purpose
-    -------
-    The purpose of this function is to run validation tests on any ID
-    arguments that the user passes in to the functions that make up the
-    source code of this project.
-
-    Parameters
-    ----------
-    id_to_check : int
-        This argument allows the user to specify the event ID for the
-        event/play that started the set piece whose subsequent sequence
-        of plays we are trying to determine.
-    verbose : int
-        This argument allows the user to specify whether or not the
-        function will print out an error message detailing the error that
-        it raises.
-
-    Returns
-    -------
-    to_return : None
-        This function does not return anything regardless of how the
-        argument `id_to_check` does in the tests done by this function.
-
-    Raises
-    ------
-    AssertionError
-        This type of error is raised when either the user passes in a
-        non-integer ID or a non-positive integer.
-
-    References
-    ----------
-    1. https://docs.python.org/3/tutorial/errors.html
-    """
-    try:
-        integer_check = [isinstance(id_to_check, int),
-                         isinstance(id_to_check, np.int),
-                         isinstance(id_to_check, np.int0),
-                         isinstance(id_to_check, np.int8),
-                         isinstance(id_to_check, np.int16),
-                         isinstance(id_to_check, np.int32),
-                         isinstance(id_to_check, np.int64),
-                         isinstance(id_to_check, np.int_),
-                         isinstance(id_to_check, np.integer)]
-        assert any(integer_check)
-        assert id_to_check > 0
-    except AssertionError as ass_err:
-        error_msg = "Invalid input to function. The argument passed in\
-		must be non-zero integer. Received type \
-		`{}` and value `{}`.".format(type(id_to_check), id_to_check)
-
-        if verbose:
-            print(error_msg)
-        raise ass_err
-
-
 def subsequent_play_generator(
         set_piece_start_id: int,
         num_events: int, trim_data=True) -> pd.DataFrame:
@@ -131,6 +75,10 @@ def subsequent_play_generator(
         same event ID. This should not occur however since each instance
         has a unique event ID; this error serves as a guard against the
         unlikely scenario of non-unique event ID's.
+    ValueError
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
 
     References
     ----------
@@ -139,8 +87,9 @@ def subsequent_play_generator(
     """
     to_return = None
     # First, let's validate the inputted data.
-    id_checker(set_piece_start_id)
-    id_checker(num_events)
+    ipv.id_checker(set_piece_start_id)
+    ipv.id_checker(num_events)
+    ipv.parameter_type_validator(bool, trim_data)
 
     # Next, obtain the specific row from the full dataset that pertains
     # to the event that starts the set piece. NOTE that we have validated
@@ -248,25 +197,19 @@ def player_position_extractor(
         type for `player_wyscout_id` is an `int` and it is a `str` for
         `notation_to_return`.
     ValueError
-        This error is raised when the passed-in value for the `notation_to_return`
-        argument is not one of the three accepted value. See the Parameters
-        section for what those accepted values are.
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
     """
     to_return = None
     # First, validate your input data.
     try:
-        id_checker(player_wyscout_id, verbose=0)
+        ipv.id_checker(player_wyscout_id, verbose=0)
     except AssertionError:
         return "-1"
 
-    try:
-        assert isinstance(notation_to_return, str)
-    except BaseException:
-        err_msg = "The type for the `notation_to_return` argument must be\
-		a string. Received type `{}`.".format(type(notation_to_return))
-
-        print(err_msg)
-        raise TypeError
+    ipv.parameter_type_validator(expected_type=str,
+                                 parameter_var=notation_to_return)
 
     accepted_values = ["two", "three", "full"]
     normed_notation = "".join(notation_to_return.lower().split())
@@ -376,9 +319,19 @@ def match_scores_generator(
         the match at each event that each row corresponds to. Thus, the
         size of this Series will be equivalent to the number of rows in
         the data frame passed-in to the `match_events` argument.
+
+    Raises
+    ------
+    ValueError
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
     """
     to_return = None
     # First, validate input data.
+    ipv.parameter_type_validator(expected_type=pd.DataFrame,
+                                 parameter_var=match_events)
+
     assert np.all(match_events.id.value_counts() == 1)
     assert np.all(match_events.matchId.value_counts() == match_events.shape[0])
 
@@ -702,6 +655,10 @@ def score_compiler(
         This error is raised when the user does NOT pass in the correct
         DataType for the `events_data` argument. It must be a Pandas
         DataFrame.
+    ValueError
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
 
     References
     ----------
@@ -710,15 +667,12 @@ def score_compiler(
     to_return = None
 
     # First, validate the input to the function.
-    try:
-        assert isinstance(events_data, pd.DataFrame)
-    except AssertionError as not_df_error:
-        err_msg = "The specification for the events data set is invalid.\
-        This function accepts a Pandas DataFrame for the `events_data`\
-        argument. Received type `{}`.".format(type(events_data))
-
-        print(err_msg)
-        raise not_df_error
+    ipv.parameter_type_validator(expected_type=pd.DataFrame,
+                                 parameter_var=events_data)
+    ipv.parameter_type_validator(expected_type=bool,
+                                 parameter_var=as_series)
+    ipv.parameter_type_validator(expected_type=bool,
+                                 parameter_var=subset_search)
 
     # Next, obtain a list of all of the match IDs that we have in this
     # dataset.

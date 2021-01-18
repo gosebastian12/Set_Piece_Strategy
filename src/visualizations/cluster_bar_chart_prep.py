@@ -22,6 +22,7 @@ import numpy as np
 
 # custom modules
 from src.data.data_loader import sequence_data, event_id_mapper
+from src.test import input_parameter_validation as ipv
 
 # define variables that will be used throughout script
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -63,31 +64,15 @@ def cluster_events_extractor(
     Raises
     ------
     ValueError
-        This error is raised when the user passes in incorrect data types
-        to the parameters of this function.
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
     """
     to_return = None
     # First, validate the input data.
-    try:
-        assert isinstance(feat_pred_df, pd.DataFrame)
-    except AssertionError:
-        err_msg = "The argument `feat_pred_df` only accepts Pandas DataFrame\
-		objects. The received type is `{}`.".format(type(feat_pred_df))
-
-        print(err_msg)
-        raise ValueError
-    try:
-        assert feat_pred_df.index.name == "seq_id"
-    except AssertionError:
-        err_msg = "The Pandas DataFrame that the user passed in to the\
-		`feat_pred_df` argument must either have an index that has the label\
-		`seq_id` or a column with that label that can be set as the index.\
-		Neither criteria was passed."
-        try:
-            feat_pred_df.set_index("seq_id", inplace=True)
-        except KeyError:
-            print(err_msg)
-            raise ValueError
+    ipv.parameter_type_validator(expected_type=pd.DataFrame,
+                                 parameter_var=feat_pred_df)
+    ipv.id_checker(id_to_check=cluster_id)
 
     # Next, compile all of the events that fall in to the cluster that is
     # specified by the `cluster_id` parameter.
@@ -118,7 +103,7 @@ def cluster_counts(
     of the type and subtype event possibilities and their corresponding
     counts in the cluster event data respectively. The function is set up
     in this way because the output is perfectly suited for use with Plotly
-    Express bar chart function (see `basic_viz` script that is found in 
+    Express bar chart function (see `basic_viz` script that is found in
     this directory).
 
     Parameters
@@ -138,8 +123,9 @@ def cluster_counts(
     Raises
     ------
     ValueError
-        This error is raised when the user passes in incorrect data types
-        to the parameters of this function.
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
 
     References
     ----------
@@ -147,14 +133,8 @@ def cluster_counts(
     """
     to_return = None
     # First, validate the input data.
-    try:
-        assert isinstance(cluster_events_df, pd.DataFrame)
-    except AssertionError:
-        err_msg = "The argument `cluster_events_df` only accepts Pandas \
-		DataFrame objects. The received type is `{}`.".format(type(cluster_events_df))
-
-        print(err_msg)
-        raise ValueError
+    ipv.parameter_type_validator(expected_type=pd.DataFrame,
+                                 parameter_var=cluster_events_df)
 
     # Next, define some variables that will be helpful later on
     all_possible_events_arr = EVENT_ID_TO_NAME_DF.event_label.unique()
