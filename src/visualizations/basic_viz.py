@@ -35,6 +35,8 @@ RANDOM_FIG, RANDOM_AX = plt.subplots()
 RANDOM_FIG.clear()
 AXES_TYPE = type(RANDOM_AX)
 
+RANDOM_PLOTLY_BAR_OBJ = px.bar()
+
 
 ################################
 ### Define Modular Functions ###
@@ -474,7 +476,11 @@ def cluster_subplot_generator(
     return to_return
 
 
-def plotly_bar_chart(count_df: pd.DataFrame, args_dict: dict, cluster_id: int):
+def plotly_bar_chart(
+        cluster_count_df: pd.DataFrame, 
+        args_dict: dict, 
+        cluster_id: int, 
+        total_count_df=None) -> RANDOM_PLOTLY_BAR_OBJ:
     """
     Purpose
     -------
@@ -487,7 +493,7 @@ def plotly_bar_chart(count_df: pd.DataFrame, args_dict: dict, cluster_id: int):
 
     Parameters
     ----------
-    count_df : Pandas DataFrame
+    cluster_count_df : Pandas DataFrame
         This argument allows the user to specify the data frame whose
         required information is outlined in the Purpose section of this
         function.
@@ -513,6 +519,8 @@ def plotly_bar_chart(count_df: pd.DataFrame, args_dict: dict, cluster_id: int):
         This argument allows the user to specify the ID of the cluster
         of interest that this bar chart corresponds to. All this is used
         for is to create the title of the bar chart.
+    total_count_df : Python None object or Pandas DataFrame
+        This argument allows the user to specify 
 
     Returns
     -------
@@ -536,14 +544,18 @@ def plotly_bar_chart(count_df: pd.DataFrame, args_dict: dict, cluster_id: int):
 
     # First, validate the input data.
     ipv.parameter_type_validator(expected_type=pd.DataFrame,
-                                 parameter_var=count_df)
+                                 parameter_var=cluster_count_df)
     ipv.parameter_type_validator(expected_type=dict, parameter_var=args_dict)
-    ipv.id_checker(id_to_check=cluster_id)
+    ipv.parameter_type_validator(expected_type=int, parameter_var=cluster_id)
+    ipv.parameter_type_validator(expected_type=(type(None), pd.DataFrame), 
+                                 parameter_var=total_count_df)
 
     # Next, define necessary values that will be used later on.
     x_arg, y_arg = args_dict.get("x"), args_dict.get("y")
     text_arg = args_dict.get("text")
+
     is_for_subevents = "sub" in x_arg
+    is_rel_to_avg = isinstance(total_count_df, pd.DataFrame)
 
     opacity_lvl = 0.65
     bar_color = "rgb(195, 62, 227)"
@@ -553,14 +565,25 @@ def plotly_bar_chart(count_df: pd.DataFrame, args_dict: dict, cluster_id: int):
 
     x_label = "Sub-Event Type Name" if is_for_subevents \
               else "Event Type Name"
+    y_label = "Normalized Count Relative to All Clusters" if is_rel_to_avg \
+              else "Normalized Count"
     axes_label_dict = {x_arg: x_label,
-                       y_arg: "Normalized Count"}
+                       y_arg: y_label}
     plot_title = \
         "Sub-Event Types Bar Chart for Cluster {}".format(cluster_id) if is_for_subevents\
         else "Event Types Bar Chart for Cluster {}".format(cluster_id)
 
+    if is_rel_to_avg:
+        # 
+        rel_ncount_series = cluster_count_df[y_arg] - total_count_df[y_arg]
+
+        df_to_plot = cluster_count_df[[x_arg, text_arg]]
+        df_to_plot[y_arg] = rel_ncount_series
+    else:
+        df_to_plot = cluster_count_df
+
     # Now we can create the bar chart itself.
-    bar_obj = px.bar(data_frame=count_df,
+    bar_obj = px.bar(data_frame=df_to_plot,
                      x=x_arg,
                      y=y_arg,
                      text=text_arg,

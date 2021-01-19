@@ -72,7 +72,7 @@ def cluster_events_extractor(
     # First, validate the input data.
     ipv.parameter_type_validator(expected_type=pd.DataFrame,
                                  parameter_var=feat_pred_df)
-    ipv.id_checker(id_to_check=cluster_id)
+    ipv.parameter_type_validator(expected_type=int, parameter_var=cluster_id)
 
     # Next, compile all of the events that fall in to the cluster that is
     # specified by the `cluster_id` parameter.
