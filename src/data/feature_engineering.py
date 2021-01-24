@@ -16,6 +16,7 @@ that result in the features we use for model training and evaluation.
 import os
 
 # data manipulation
+from ast import literal_eval
 import pandas as pd
 import numpy as np
 import swifter
@@ -150,7 +151,7 @@ def delta_distance_engineer(row) -> float:
         of the event of interest.
 
         NOTE that when this function is passed to the `apply()` method o
-        the sequence dataset, the result will be a Pandas Series comprisin
+        the sequence dataset, the result will be a Pandas Series comprising
         of the numerical results for all of the row instances.
 
     Raises
@@ -170,24 +171,12 @@ def delta_distance_engineer(row) -> float:
     """
     to_return = None
 
-    # First, validate the input data.
+    # First, perform necessary calculation to arrive at feature value.
+    starting_point_arr = np.array([row[0].get("x"),
+                                   row[0].get("y")])
     try:
-        event_positions = row.positions
-    except AttributeError:
-        # If the row/DataFrame passed to the function does not have the
-        # proper column(s).
-        err_msg = "The row/DataFrame passed to this function does not have\
-		the column `positions`. This column is required to run this function."
-
-        print(err_msg)
-        raise ValueError
-
-    # Next, perform necessary calculation to arrive at feature value.
-    starting_point_arr = np.array([event_positions[0].get("x"),
-                                   event_positions[0].get("y")])
-    try:
-        ending_point_arr = np.array([event_positions[1].get("x"),
-                                     event_positions[1].get("y")])
+        ending_point_arr = np.array([row[1].get("x"),
+                                     row[1].get("y")])
     except IndexError:
         # If the ending field position of the event was NOT tracked. Upon
         # investigation of the data, this only occurs when a foul is
@@ -256,26 +245,14 @@ def delta_goal_distance_engineer(row) -> float:
     """
     to_return = None
 
-    # First, validate the input data.
-    try:
-        event_positions = row.positions
-    except AttributeError:
-        # If the row/DataFrame passed to the function does not have the
-        # proper column(s).
-        err_msg = "The row/DataFrame passed to this function does not have\
-		the column `positions`. This column is required to run this function."
-
-        print(err_msg)
-        raise ValueError
-
-    # Next, perform necessary calculation to arrive at feature value.
+    # First, perform necessary calculation to arrive at feature value.
     middle_goal_line_point_arr = np.array([100, 50])
 
-    starting_point_arr = np.array([event_positions[0].get("x"),
-                                   event_positions[0].get("y")])
+    starting_point_arr = np.array([row[0].get("x"),
+                                   row[0].get("y")])
     try:
-        ending_point_arr = np.array([event_positions[1].get("x"),
-                                     event_positions[1].get("y")])
+        ending_point_arr = np.array([row[1].get("x"),
+                                     row[1].get("y")])
     except IndexError:
         # If the ending field position of the event was NOT tracked. Upon
         # investigation of the data, this only occurs when a foul is
@@ -628,6 +605,8 @@ def basic_instance_features(
     ----------
     1. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.apply.html
     2. https://stackoverflow.com/questions/35491274/pandas-split-column-of-lists-into-multiple-columns
+    3. https://stackoverflow.com/questions/23111990/pandas-dataframe-stored-list-as-string-how-to-convert-back-to-list
+    4. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.eval.html
     """
     to_return = None
 
@@ -678,13 +657,15 @@ def basic_instance_features(
 
     # Distance-related features.
     print("Putting together distance-related features.")
-    feat_eng_df["pos_delta_diff"] = events_data_set.swifter.apply(
-        func=delta_distance_engineer, axis="columns"
-    )
+    event_pos_series = events_data_set[
+        "positions"
+    ].swifter.progress_bar(False).apply(lambda x: literal_eval(x))
+
+    feat_eng_df["pos_delta_diff"] = event_pos_series.swifter.apply(
+        func=delta_distance_engineer)
 
     feat_eng_df["to_goal_delta_diff"] = events_data_set.swifter.apply(
-        func=delta_goal_distance_engineer, axis="columns"
-    )
+        func=delta_goal_distance_engineer)
 
     # Number of attacking events.
     print("Putting together number of attacking events.")

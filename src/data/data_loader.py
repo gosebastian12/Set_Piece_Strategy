@@ -442,7 +442,9 @@ def matches_data(league_name: str, rel_path=None) -> pd.DataFrame:
         final_df = pd.concat(loaded_files).reset_index(drop=True)
     else:
         # If the user is loading a specific file.
-        final_df = pd.read_json(matches_zip_obj.open(file_to_load))
+        final_df = pd.read_json(
+            matches_zip_obj.open("matches/{}".format(file_to_load))
+        )
 
     to_return = final_df
 

@@ -34,7 +34,7 @@ EVENT_ID_TO_NAME_DF = event_id_mapper()
 ### Define Modular Functions ###
 ################################
 def cluster_events_extractor(
-        feat_pred_df: pd.DataFrame, cluster_id: int) -> pd.DataFrame:
+        feat_pred_df: pd.DataFrame, cluster_id: int, **kwargs) -> pd.DataFrame:
     """
     Purpose
     -------
@@ -53,6 +53,21 @@ def cluster_events_extractor(
         This argument allows the user to specify the ID of the cluster
         that we would like to use to filter out the events passed to the
         `feat_pred_df` argument.
+    kwargs : dict
+        This function accepts keyword arguments that give the user the
+        ability to specify which columns of the original sequence data
+        are returned with the result. Note that:
+            1. The function does not only accept specific keyword argument
+               names (that is, the keys of the dictionary in the function's
+               local scope under the variable name `kwargs`). However, the
+               values assigned to these keyword variables must be strings
+               that are exactly identical to one of the column labels in
+               the original sequence data. If not a `KeyError` will be
+               raised by this function.
+            2. If there are no keyword arguments, the default columns
+               contained in the result are `eventId`, `eventName`,
+               `subEventId`, and `subEventName` with `seq_id` being the
+               index of the DataFrame.
 
     Returns
     -------
@@ -74,14 +89,30 @@ def cluster_events_extractor(
                                  parameter_var=feat_pred_df)
     ipv.parameter_type_validator(expected_type=int, parameter_var=cluster_id)
 
+    are_keywords = len(kwargs.keys()) > 0 
+    if are_keywords:
+        # If the user passed in keyword arguments to this function.
+        try:
+            for val in kwargs.values():
+                ipv.parameter_type_validator(str, val)
+                assert val in SEQUENCES_DF.columns
+        except (ValueError, AssertionError):
+            err_msg = "This function only accepts Python string-objects\
+            that are equivalent to one of the column labels in the original\
+            sequence data. One or more of this values passed in by the\
+            user did not meet this criteria."
+            raise KeyError(err_msg)
+
     # Next, compile all of the events that fall in to the cluster that is
     # specified by the `cluster_id` parameter.
     cluster_seq_ids = list(
         feat_pred_df[feat_pred_df.predicted_cluster_id == cluster_id].index
     )
+
+    columns_to_keep = list(kwargs.values()) if are_keywords \
+                      else ["eventId", "eventName", "subEventId", "subEventName"]
     cluster_events_df = SEQUENCES_DF.set_index("seq_id").loc[
-        cluster_seq_ids
-    ][["eventId", "eventName", "subEventId", "subEventName"]]
+        cluster_seq_ids][columns_to_keep]
 
     # Finally, validate and return the result.
     feat_pred_cluster_counts = feat_pred_df.predicted_cluster_id.value_counts()

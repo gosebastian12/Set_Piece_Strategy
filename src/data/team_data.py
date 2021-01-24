@@ -44,7 +44,9 @@ def encoded_accent_normalizer(row) -> str:
     Parameters
     ----------
     row : Pandas DataFrame row
-        This argument allows the user to specify
+        This argument allows the user to specify which row instance they
+        are working with as the `apply()` iteratively gets applied to
+        each row of the sequence DataFrame.
 
     Returns
     -------

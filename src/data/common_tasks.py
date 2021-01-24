@@ -283,17 +283,162 @@ def goal_checker(row) -> bool:
     # Next, perform checks.
     if row.eventId != 9:
         # If the event is not listed as a save attempt. This check is
-        # included to protect against cases where two different event really
-        # correspond to the same thing, in case a shot on goal. We only
-        # want to take a look at the event that specifies the shot itself
-        # because that will tell us about the team that scored the goal
-        # if the shot was successful.
+        # included to protect against cases where two different events
+        # really correspond to the same thing, in case a shot on goal. We
+        # only want to take a look at the event that specifies the shot
+        # itself because that will tell us about the team that scored the
+        # goal if the shot was successful.
         for goal_tag in tags_that_indicate_a_goal:
             passed = goal_tag in row_tags_list
             if passed:
                 to_return = passed
                 break
 
+    return to_return
+
+
+def home_away_designations_extractor(
+        match_id: int) -> tuple:
+    """
+    Purpose
+    -------
+    The purpose of this function is to take the ID of a particular match
+    and return two Python dictionaries that allow the user to quickly
+    look up, for example, which team is the home team and, another example.
+    the side designation of a specific team.
+
+    Parameters
+    ----------
+    match_id : int
+        This parameter allows the user to specify the ID of the match for
+        which they would like to be able to quickly figure out the side
+        designations.
+
+    Returns
+    -------
+    to_return : tuple of Python dictionaries
+        This function return a tuple that contains two Python dictionaries.
+        The first one allows the user to look up the IDs of the teams
+        designated as "home" and "away" respectively and the second one,
+        being the inverse of the first dictionary, allows the user to
+        look up the side designation of a team.
+
+    Raises
+    ------
+    ValueError
+        This error is raised when the user passes in an invalid ID value
+        to the `match_id` parameter.
+    """
+    to_return = None
+    # First, validate the input data
+    ipv.id_checker(match_id)
+
+    # Next, extract out the sides information.
+    match_row = MATCHES_DF[MATCHES_DF.wyId == match_id].iloc[0]
+
+    team_ids_list = list(match_row.teamsData.keys())
+
+    team0_side_designation = match_row.teamsData.get(
+        team_ids_list[0]).get("side").lower()
+    team1_side_designation = match_row.teamsData.get(
+        team_ids_list[1]).get("side").lower()
+
+    side_to_team_id_dict = {team0_side_designation: team_ids_list[0],
+                            team1_side_designation: team_ids_list[1]}
+
+    team_id_to_side_dict = {
+        int(j): i for i, j in side_to_team_id_dict.items()
+    }
+
+    # Finally, return the result.
+    to_return = (side_to_team_id_dict, team_id_to_side_dict)
+    return to_return
+
+
+def end_of_half_score_validator(
+        match_id: int, side_to_team_id_dict: dict,
+        which_half: str, extracted_score: str):
+    """
+    Purpose
+    -------
+    The purpose of this function is to take the score at the end of the
+    half extracted by the score compiler function and compare that against
+    the number of goals scored by each team as indicated in the match
+    data set. We use this comparison as a quality check that is done along
+    the way of the compilation.
+
+    Parameters
+    ----------
+    match_id : int
+        This parameter allows the user to specify the ID of the match for
+        which they would like to be able to quickly figure out the side
+        designations.
+    side_to_team_id_dict : dict
+        This parameter allows the user to specify the dictionary to use
+        when looking up the specific teams for each side designation of
+        a match.
+    which_half : str
+        This parameter allows the user to specify for which half of the
+        match to look up the end of half score. The accepted values for
+        this parameter are:
+            1. "first" which tells the function to look up the score at
+               the end of the first half.
+            2. "second" which tells the function to look up the score at
+               the end of normal time.
+
+    Returns
+    -------
+    to_return : None
+        This function does NOT return anything since it simply serves to
+        compare and contrast the score of
+
+    Raises
+    ------
+    ValueError
+        This error is raised when the user passes in an invalid ID value
+        to the `match_id` parameter.
+    AssertionError
+        This error is raised when the function deems that the extracted
+        end of half of interest score from the data set differs from that
+        listed in the matches data set.
+    """
+    to_return = None
+    # First, validate the input data.
+    ipv.id_checker(match_id)
+    ipv.parameter_type_validator(expected_type=dict,
+                                 parameter_var=side_to_team_id_dict)
+    ipv.parameter_type_validator(expected_type=str,
+                                 parameter_var=which_half)
+    ipv.parameter_type_validator(expected_type=str,
+                                 parameter_var=extracted_score)
+
+    # Next, define the variables that we will need for the rest of this
+    # function.
+    normed_which_half = "".join(which_half.lower().split())
+
+    match_row = MATCHES_DF[MATCHES_DF.wyId == match_id].iloc[0]
+
+    which_half_dict_mapper = {"first": "scoreHT", "second": "score"}
+    half_str = which_half_dict_mapper.get(normed_which_half)
+
+    # Now, we can extract the listed end of half of interest score listed
+    # in the matches data set.
+    end_of_half_away_score = match_row.teamsData.get(
+        side_to_team_id_dict.get("away")).get(half_str)
+    end_of_half_home_score = match_row.teamsData.get(
+        side_to_team_id_dict.get("home")).get(half_str)
+
+    end_of_half_score = "{}-{}".format(end_of_half_away_score,
+                                       end_of_half_home_score)
+    try:
+        assert end_of_half_score == extracted_score
+    except AssertionError as not_right_score_error:
+        print("Match ID: {}".format(match_id))
+        print("Halftime score from match dataset: {}".format(end_of_half_score))
+        print("Halftime score we found: {}".format(extracted_score))
+        raise not_right_score_error
+
+    # Finally, return the result.
     return to_return
 
 
@@ -304,7 +449,7 @@ def match_scores_generator(
     -------
     The purpose of this function is to take all of the events that occurred
     during a match and return a Pandas Series that specifies the score of the match
-    at that particular point of the game.
+    at each particular point of the game.
 
     Parameters
     ----------
@@ -336,20 +481,9 @@ def match_scores_generator(
     assert np.all(match_events.matchId.value_counts() == match_events.shape[0])
 
     # Next, determine home-away designations.
-    match_row = MATCHES_DF[
-        MATCHES_DF.wyId == match_events.iloc[0].matchId
-    ].iloc[0]
-
-    team_ids_list = list(match_row.teamsData.keys())
-    team_sides_dict = {
-        match_row.teamsData.get(team_ids_list[0]).get("side").lower():
-            team_ids_list[0],
-        match_row.teamsData.get(team_ids_list[1]).get("side").lower():
-            team_ids_list[1]
-    }
-    inverted_sides_dict = {
-        int(j): i for i, j in team_sides_dict.items()
-    }
+    match_id = match_events.iloc[0].matchId
+    team_sides_dict, inverted_sides_dict = \
+        home_away_designations_extractor(match_id=match_id)
 
     # Next, iterate through the events of the first half.
     # Initialize certain values.
@@ -406,26 +540,15 @@ def match_scores_generator(
         half1_scores_list += [current_score] * (
             scores_in_half1_series.size - len(half1_scores_list))
     else:
+        # If there were no goals scored in this half.
         half1_scores_list = [current_score] * scores_in_half1_series.size
 
     # Validate final first half score we arrived at.
     assert len(half1_scores_list) == scores_in_half1_series.size
-
-    end_of_half1_away_score = match_row.teamsData.get(
-        team_sides_dict.get("away")
-    ).get("scoreHT")
-    end_of_half1_home_score = match_row.teamsData.get(
-        team_sides_dict.get("home")
-    ).get("scoreHT")
-    end_of_half1_score = "{}-{}".format(end_of_half1_away_score,
-                                        end_of_half1_home_score)
-    try:
-        assert end_of_half1_score == current_score
-    except AssertionError as not_right_score_error:
-        print("Match ID: {}".format(match_events.iloc[0].matchId))
-        print("Halftime score from match dataset: {}".format(end_of_half1_score))
-        print("Halftime score we found: {}".format(current_score))
-        raise not_right_score_error
+    end_of_half_score_validator(match_id=match_id,
+                                side_to_team_id_dict=team_sides_dict,
+                                which_half="first",
+                                extracted_score=current_score)
 
     half1_scores_series = pd.Series(half1_scores_list)
 
@@ -477,7 +600,7 @@ def match_scores_generator(
         # Fill in the remaining values since the last goal found above.
         half2_scores_list += [current_score] * (
             scores_in_half2_series.size - len(half2_scores_list))
-    elif match_row.wyId == 2499781:
+    elif match_id == 2499781:
         # If we are dealing with a match that, for some reason, does not
         # have a specified goal event despite there in fact being a goal
         # scored in the match. This particular match is the Chelsea,
@@ -497,29 +620,17 @@ def match_scores_generator(
 
     # Validate final second half score we arrived at.
     assert len(half2_scores_list) == scores_in_half2_series.size
-
-    end_of_half2_away_score = match_row.teamsData.get(
-        team_sides_dict.get("away")
-    ).get("score")
-    end_of_half2_home_score = match_row.teamsData.get(
-        team_sides_dict.get("home")
-    ).get("score")
-    end_of_half2_score = "{}-{}".format(end_of_half2_away_score,
-                                        end_of_half2_home_score)
-    try:
-        assert end_of_half2_score == current_score
-    except AssertionError as not_right_score_error:
-        print("Match ID: {}".format(match_events.iloc[0].matchId))
-        print("End of second half score from match dataset: {}".format(
-            end_of_half2_score))
-        print("End of second half score we found: {}".format(current_score))
-        raise not_right_score_error
+    end_of_half_score_validator(match_id=match_id,
+                                side_to_team_id_dict=team_sides_dict,
+                                which_half="second",
+                                extracted_score=current_score)
 
     half2_scores_series = pd.Series(half2_scores_list)
 
     # Next, iterate through the events of the extra period (if there was
     # one).
-    match_duration = match_row.duration
+    match_duration = MATCHES_DF[
+        MATCHES_DF.wyId == match_id].iloc[0].duration
     if match_duration == "Regular":
         # If there was no extra-time played.
         et_scores_series = pd.Series([], dtype="object")
@@ -589,8 +700,7 @@ def match_scores_generator(
                                    half2_scores_series,
                                    et_scores_series,
                                    penalties_scores_series],
-                             ignore_index=True
-                             )
+                             ignore_index=True)
     try:
         assert score_series.size == match_events.shape[0]
     except AssertionError as no_scores_for_each_event:
@@ -604,10 +714,7 @@ def match_scores_generator(
     return to_return
 
 
-def score_compiler(
-        events_data=EVENTS_DF,
-        as_series=True,
-        subset_search=False) -> str:
+def score_compiler(events_data=EVENTS_DF.copy()) -> pd.Series:
     """
     Purpose
     -------
@@ -627,27 +734,15 @@ def score_compiler(
         This parameter's value defaults to the dataframe comprising all
         of the events we have tracking data for that is loaded-in at the
         beginning of this script.
-    as_series : Boolean
-        This argument allows the user to control what DataType the function
-        will return its results as. If specified as `True`, then the collection
-        of scores will be returned as a Pandas Series. If specified as
-        `False`, then the collection of scores will be appended as a new
-        column the DataFrame specified with the `events_data` argument and
-        that new DataFrame will be returned. The version of this function
-        only supports these two options.
-
-        This parameter's value default to `True`.
-    subset_search : Boolean
-        This argument allows the user to control
-
-        This parameter's value default to `True`.
 
     Returns
     -------
-    to_return : str
-        This function returns a string that specifies the score of the
-        match at the time in which the event pertaining to a specific
-        row occurs. It will be in the format "{away-team-score}-{home-team-score}".
+    to_return : Pandas DataFrame
+        This function returns the DataFrame that the user passed in to the
+        `events_data` argument with the difference being that a new column
+        has been added; the `scores` column which indicates the score of
+        the match at the point at which the event corresponding to that
+        row occurs.
 
     Raises
     ------
@@ -663,79 +758,54 @@ def score_compiler(
     References
     ----------
     1. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
+    2. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.set_index.html
     """
     to_return = None
 
     # First, validate the input to the function.
     ipv.parameter_type_validator(expected_type=pd.DataFrame,
                                  parameter_var=events_data)
-    ipv.parameter_type_validator(expected_type=bool,
-                                 parameter_var=as_series)
-    ipv.parameter_type_validator(expected_type=bool,
-                                 parameter_var=subset_search)
+    if "matchId" not in events_data.columns:
+        events_data.reset_index(inplace=True)
+        try:
+            assert "matchId" in events_data.columns
+        except AssertionError:
+            raise KeyError("Need to have the column `matchId`.")
 
     # Next, obtain a list of all of the match IDs that we have in this
     # dataset.
-    match_ids_list = list(events_data.matchId.value_counts().index)
+    match_ids_list = list(events_data["matchId"].value_counts().index)
     assert len(match_ids_list) == np.unique(match_ids_list).size
 
     # Now we can iteratively go through each match and update the scores
     # at each point of an event accordingly.
+    events_data.set_index(keys="matchId",
+                          inplace=True,
+                          verify_integrity=False)
     objs_to_concat = []
-
-    starting_index_to_search = 0
-    num_rows_to_search = 3000
-    ending_index_to_search = 3000
     for match_id in match_ids_list:
-        if subset_search:
-            # Notice that we're starting by taking a look at each match
-            # individually. We make this less computationally redundant
-            # by only subset-ing a subset of the full data set.
-            candidate_match_events = events_data[
-                starting_index_to_search:ending_index_to_search:
-            ]
-            match_events = candidate_match_events[
-                candidate_match_events.matchId == match_id
-            ]
-            if match_events.shape[0] == candidate_match_events.shape[0]:
-                # If we included all of the candidates in our collection of
-                # match events. This means that there is a chance that there
-                # are more events that we are not including.
-                more_candidates = events_data[
-                    ending_index_to_search:ending_index_to_search + 2000
-                ]
-                more_events = more_candidates[
-                    more_candidates.matchId == match_id
-                ]
-                final_mes = pd.concat([match_events, more_events],
-                                      ignore_index=True)
-            else:
-                # `final_mes` stands for final match events.
-                final_mes = match_events
-        else:
-            final_mes = events_data[events_data.matchId == match_id]
+        match_events = events_data.loc[match_id].reset_index()
 
         # Add a score column to each row in the match. Since we are given
         # the scores at the end of every half in the matches data set, we
         # perform our score compilation on a half-by-half-basis so as to
         # validate our results along the way.
-        scores_series = match_scores_generator(final_mes)
-        if as_series:
-            # If the user would like the results to be returned as a
-            # Pandas Series.
-            objs_to_concat.append(scores_series)
-        else:
-            final_mes["score"] = scores_series
-            objs_to_concat.append(final_mes)
+        scores_series = match_scores_generator(match_events)
+        assert scores_series.size == match_events.shape[0]
 
-        # Update necessary values.
-        starting_index_to_search = final_mes.last_valid_index() + 1
-        ending_index_to_search = starting_index_to_search + num_rows_to_search
+        match_events["score"] = scores_series
+        match_events.reset_index(inplace=True, drop=False)
+
+        objs_to_concat.append(match_events)
 
     # Finally, validate and return the result
     to_return = pd.concat(objs_to_concat, ignore_index=True)
+    try:
+        to_return.drop(columns="index", inplace=True)
+    except AssertionError:
+        pass
+
     assert to_return.shape[0] == events_data.shape[0]
-    if not as_series:
-        assert to_return.shape[1] + 1 == events_data.shape[1]
+    assert to_return.shape[1] == events_data.reset_index().shape[1] + 1
 
     return to_return
