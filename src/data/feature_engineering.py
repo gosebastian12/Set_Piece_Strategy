@@ -91,7 +91,6 @@ def position_engineer(row) -> list:
     2. https://github.com/jmcarpenter2/swifter
     """
     to_return = [0] * 4
-
     # First, validate the input data.
     try:
         player_id = row.playerId
@@ -170,7 +169,6 @@ def delta_distance_engineer(row) -> float:
     3. https://github.com/jmcarpenter2/swifter
     """
     to_return = None
-
     # First, perform necessary calculation to arrive at feature value.
     starting_point_arr = np.array([row[0].get("x"),
                                    row[0].get("y")])
@@ -244,7 +242,6 @@ def delta_goal_distance_engineer(row) -> float:
     2. https://github.com/jmcarpenter2/swifter
     """
     to_return = None
-
     # First, perform necessary calculation to arrive at feature value.
     middle_goal_line_point_arr = np.array([100, 50])
 
@@ -327,7 +324,6 @@ def time_in_match_engineer(row) -> float:
     2. https://github.com/jmcarpenter2/swifter
     """
     to_return = None
-
     # First, validate the input data.
     try:
         match_time_since_half = row.eventSec
@@ -413,7 +409,6 @@ def score_differential_engineer(row) -> int:
     2. https://github.com/jmcarpenter2/swifter
     """
     to_return = None
-
     # First, validate the input data.
     try:
         score_at_event = row.score
@@ -491,7 +486,6 @@ def num_attacking_events_engineer(
     1.
     """
     to_return = None
-
     # First, validate the input data.
     ipv.parameter_type_validator(expected_type=pd.DataFrame,
                                  parameter_var=sequence_events_df)
@@ -499,14 +493,16 @@ def num_attacking_events_engineer(
     try:
         assert sequence_events_df.iloc[0].eventId == 3
     except AssertionError:
-        err_msg = "The sequence of events for this particular set piece\
-        sequence must begin with a set piece event. The initiating event\
-        for the sequence of events given to the function is `{}` (see the\
-        `eventid2name` file in the `data` directory for more\
-        information.".format(sequence_events_df.iloc[0].eventId)
+        if sequence_events_df.iloc[0].eventId == 5:
+            pass
+        else:
+            err_msg = "The sequence of events for this particular set piece\
+            sequence must begin with a set piece event. The initiating event\
+            for the sequence of events given to the function is `{}` (see\
+            the `eventid2name` file in the `data` directory for more\
+            information.".format(sequence_events_df.iloc[0].eventId)
 
-        print(err_msg)
-        raise ValueError
+            raise ValueError(err_msg)
 
     try:
         assert sequence_events_df.seq_id.unique().size == 1
@@ -516,8 +512,7 @@ def num_attacking_events_engineer(
         The DataFrame received contains events from `{}` different set\
         piece sequences.".format(sequence_events_df.seq_id.unique().size)
 
-        print(err_msg)
-        raise ValueError
+        raise ValueError(err_msg)
 
     # Next, define the variables that we will need in our computations.
     total_num_events = sequence_events_df.shape[0]
@@ -609,7 +604,6 @@ def basic_instance_features(
     4. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.eval.html
     """
     to_return = None
-
     # First, validate the input data.
     ipv.parameter_type_validator(expected_type=pd.DataFrame,
                                  parameter_var=events_data_set)
@@ -664,7 +658,7 @@ def basic_instance_features(
     feat_eng_df["pos_delta_diff"] = event_pos_series.swifter.apply(
         func=delta_distance_engineer)
 
-    feat_eng_df["to_goal_delta_diff"] = events_data_set.swifter.apply(
+    feat_eng_df["to_goal_delta_diff"] = event_pos_series.swifter.apply(
         func=delta_goal_distance_engineer)
 
     # Number of attacking events.
@@ -678,6 +672,7 @@ def basic_instance_features(
 
         cum_nums_list.append(cum_num_series)
     full_cum_num_series = pd.concat(cum_nums_list, ignore_index=True)
+    
     feat_eng_df["num_attacking_events"] = full_cum_num_series
 
     # Validate result and then return it to the user.

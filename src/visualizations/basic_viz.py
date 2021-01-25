@@ -343,10 +343,11 @@ def cluster_subplot_generator(
     ipv.parameter_type_validator(expected_type=np.ndarray,
                                  parameter_var=feature_data)
     ipv.parameter_type_validator(expected_type=np.ndarray,
-                                 parameter_var=np.ndarray)
+                                 parameter_var=predicted_labels)
     ipv.parameter_type_validator(expected_type=(type(None), tuple),
                                  parameter_var=plot_objs)
-    ipv.parameter_type_validator(expected_type=bool, parameter_var=save_plot)
+    ipv.parameter_type_validator(expected_type=bool, 
+                                 parameter_var=save_plot)
 
     # Next, define necessary variables
     if isinstance(plot_objs, type(None)):
