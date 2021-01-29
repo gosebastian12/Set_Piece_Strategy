@@ -101,10 +101,10 @@ def subsequent_play_generator(
     assert isinstance(start_set_piece_row, pd.Series)
 
     # Now, obtain the rest of the rows that we are interested in analyzing.
-    row_indicies = list(range(start_sp_row_index,
-                              start_sp_row_index + num_events + 1))
+    row_indices = list(range(start_sp_row_index,
+                             start_sp_row_index + num_events + 1))
 
-    sp_sequece_df = EVENTS_DF.iloc[row_indicies]
+    sp_sequece_df = EVENTS_DF.iloc[row_indices]
 
     # Validate the data you're about to return.
     assert sp_sequece_df.iloc[0].id == set_piece_start_id
@@ -442,6 +442,108 @@ def end_of_half_score_validator(
     return to_return
 
 
+def scores_in_half_compiler(
+        scores_in_half_series: pd.Series, current_score_str: str,
+        match_events: pd.DataFrame, team_id_to_side_dict: dict) -> list:
+    """
+    Purpose
+    -------
+    The purpose of this function is to
+
+    Parameters
+    ----------
+    scores_in_half_series : Pandas Series
+        This parameter allows the user to specify the specification
+    current_score_str : str
+        This parameter allows the user to specify
+    match_events : Pandas DataFrame
+        This argument allows the user to specify the collection of events
+        of the match of interest.
+
+    Returns
+    -------
+    to_return : list
+        This function returns a
+
+    Raises
+    ------
+    ValueError
+        This error is raised when the user, for at least one parameter,
+        passes in an object whose type is not among the accepted types
+        for that parameter.
+
+    References
+    ----------
+    1.
+    """
+    to_return = None
+    # First, validate the input data.
+    ipv.parameter_type_validator(expected_type=pd.Series,
+                                 parameter_var=scores_in_half_series)
+    ipv.parameter_type_validator(expected_type=str,
+                                 parameter_var=current_score_str)
+    ipv.parameter_type_validator(expected_type=pd.DataFrame,
+                                 parameter_var=match_events)
+    ipv.parameter_type_validator(expected_type=dict,
+                                 parameter_var=team_id_to_side_dict)
+
+    # Next, define the variables that we will need throughout the function.
+    indices_of_goals = np.argwhere(
+        scores_in_half_series.to_numpy()).flatten().tolist()
+
+    current_away_score = int(current_score_str[0])
+    current_home_score = int(current_score_str[-1])
+
+    half_scores_list = []
+
+    # Now, we are ready to iterate through the row indices of the original
+    # event dataframe and determine the score for each.
+    for goal_index in indices_of_goals:
+        # Iterate through each instance of a goal being scored.
+        goal_row = match_events.iloc[goal_index]
+        side_of_goal = team_id_to_side_dict[goal_row.teamId]
+        was_own_goal = {"id": 102} in goal_row.tags
+
+        if side_of_goal == "away":
+            if was_own_goal:
+                # If a team committed an own goal, then that counts as a
+                # score for the other team.
+                current_home_score += 1
+            else:
+                # If this was just a regular ol'goal.
+                current_away_score += 1
+        elif side_of_goal == "home":
+            if was_own_goal:
+                # If a team committed an own goal, then that counts
+                # as a score for the other team.
+                current_away_score += 1
+            else:
+                # If this was just a regular ol'goal.
+                current_home_score += 1
+        new_score = "{}-{}".format(current_away_score,
+                                   current_home_score)
+
+        # Update the values in scores list for the instances between the
+        # last goal and this one with the previous score of the match
+        # (before the goal that we have just identified).
+        half_scores_list += [
+            current_score] * (goal_index - len(half_scores_list))
+        half_scores_list.append(new_score)
+
+        # Update initialized values.
+        current_score = new_score
+
+    # Fill in the remaining values since the last goal of the half.
+    half_scores_list += [current_score] * (
+        scores_in_half_series.size - len(half_scores_list))
+
+    # Finally, validate and return the result.
+    assert len(half_scores_list) == scores_in_half_series.size
+    to_return = half_scores_list
+
+    return to_return
+
+
 def match_scores_generator(
         match_events: pd.DataFrame) -> pd.Series:
     """
@@ -492,114 +594,47 @@ def match_scores_generator(
         func=goal_checker, axis="columns"
     )
     assert scores_in_half1_series.size == half1_events.shape[0]
-    half1_scores_list = []
 
-    current_away_score = 0
-    current_home_score = 0
-    current_score = "{}-{}".format(current_away_score,
-                                   current_home_score)
+    current_score = "{}-{}".format(0, 0)
 
     if np.any(scores_in_half1_series):
         # If there was at least one goal scored in the first half of
         # the match of interest.
-        indicies_of_goals = np.argwhere(
-            scores_in_half1_series.to_numpy()).flatten().tolist()
-
-        for goal_index in indicies_of_goals:
-            # Iterate through each instance of a goal being scored.
-            goal_row = match_events.iloc[goal_index]
-            side_of_goal = inverted_sides_dict[goal_row.teamId]
-            was_own_goal = {"id": 102} in goal_row.tags
-
-            if side_of_goal == "away":
-                if was_own_goal:
-                    # If a team committed an own goal, then that counts
-                    # as a score for the other team.
-                    current_home_score += 1
-                else:
-                    # If this was just a regular ol'goal.
-                    current_away_score += 1
-            elif side_of_goal == "home":
-                if was_own_goal:
-                    # If a team committed an own goal, then that counts
-                    # as a score for the other team.
-                    current_away_score += 1
-                else:
-                    # If this was just a regular ol'goal.
-                    current_home_score += 1
-            new_score = "{}-{}".format(current_away_score,
-                                       current_home_score)
-            half1_scores_list += [
-                current_score] * (goal_index - len(half1_scores_list))
-            half1_scores_list.append(new_score)
-
-            # Update initialized values.
-            current_score = new_score
-
-        # Fill in the remaining values since the last goal found above.
-        half1_scores_list += [current_score] * (
-            scores_in_half1_series.size - len(half1_scores_list))
+        half1_scores_list = scores_in_half_compiler(
+            scores_in_half_series=scores_in_half1_series,
+            current_score_str=current_score,
+            match_events=match_events,
+            team_id_to_side_dict=inverted_sides_dict
+        )
     else:
         # If there were no goals scored in this half.
         half1_scores_list = [current_score] * scores_in_half1_series.size
 
     # Validate final first half score we arrived at.
-    assert len(half1_scores_list) == scores_in_half1_series.size
+    half1_scores_series = pd.Series(half1_scores_list)
+
+    current_score = half1_scores_series.iloc[-1]
     end_of_half_score_validator(match_id=match_id,
                                 side_to_team_id_dict=team_sides_dict,
                                 which_half="first",
                                 extracted_score=current_score)
 
-    half1_scores_series = pd.Series(half1_scores_list)
-
     # Next, iterate through the events of the second half.
-    current_score = half1_scores_series.iloc[-1]
-    current_away_score = int(current_score[0])
-    current_home_score = int(current_score[-1])
-
     half2_events = match_events[match_events.matchPeriod == "2H"]
     scores_in_half2_series = half2_events.swifter.progress_bar(False).apply(
         func=goal_checker, axis="columns"
     )
     assert half2_events.shape[0] == scores_in_half2_series.size
-    half2_scores_list = []
 
     if np.any(scores_in_half2_series):
         # If there was at least one goal scored in the second half of
         # the match of interest.
-        indicies_of_goals = np.argwhere(
-            scores_in_half2_series.to_numpy()).flatten().tolist()
-
-        for goal_index in indicies_of_goals:
-            corrected_goal_index = goal_index + half1_scores_series.size
-            assert corrected_goal_index <= match_events.shape[0]
-
-            goal_row = match_events.iloc[corrected_goal_index]
-            side_of_goal = inverted_sides_dict.get(goal_row.teamId)
-            was_own_goal = {"id": 102} in goal_row.tags
-
-            if side_of_goal == "away":
-                if was_own_goal:
-                    current_home_score += 1
-                else:
-                    current_away_score += 1
-            else:
-                if was_own_goal:
-                    current_away_score += 1
-                else:
-                    current_home_score += 1
-            new_score = "{}-{}".format(current_away_score,
-                                       current_home_score)
-
-            half2_scores_list += [current_score] * (
-                goal_index - len(half2_scores_list))
-            half2_scores_list.append(new_score)
-
-            current_score = new_score
-
-        # Fill in the remaining values since the last goal found above.
-        half2_scores_list += [current_score] * (
-            scores_in_half2_series.size - len(half2_scores_list))
+        half2_scores_list = scores_in_half_compiler(
+            scores_in_half_series=scores_in_half2_series,
+            current_score_str=current_score,
+            match_events=match_events,
+            team_id_to_side_dict=inverted_sides_dict
+        )
     elif match_id == 2499781:
         # If we are dealing with a match that, for some reason, does not
         # have a specified goal event despite there in fact being a goal
@@ -613,19 +648,17 @@ def match_scores_generator(
         ).flatten()[0]
         half2_scores_list = ["0-0"] * goal_threshold + \
             ["1-0"] * (events_times.size - goal_threshold)
-
-        current_score = "1-0"
     else:
         half2_scores_list = [current_score] * scores_in_half2_series.size
 
     # Validate final second half score we arrived at.
-    assert len(half2_scores_list) == scores_in_half2_series.size
+    half2_scores_series = pd.Series(half2_scores_list)
+
+    current_score = half2_scores_series.iloc[-1]
     end_of_half_score_validator(match_id=match_id,
                                 side_to_team_id_dict=team_sides_dict,
                                 which_half="second",
                                 extracted_score=current_score)
-
-    half2_scores_series = pd.Series(half2_scores_list)
 
     # Next, iterate through the events of the extra period (if there was
     # one).
@@ -636,51 +669,25 @@ def match_scores_generator(
         et_scores_series = pd.Series([], dtype="object")
         penalties_scores_series = pd.Series([], dtype="object")
     elif match_duration in ["ExtraTime", "Penalties"]:
-        # If there was a pair of extra-time periods played.
-        current_score = half2_scores_series.iloc[-1]
-        current_away_score = int(current_score[0])
-        current_home_score = int(current_score[-1])
-
+        # If there was a pair of extra-time periods played and maybe even
+        # a penalty shootout.
         extra_period_events = match_events[
             np.logical_or(match_events.matchPeriod == "E1",
                           match_events.matchPeriod == "E2")
         ]
         scores_in_et_series = extra_period_events.swifter.progress_bar(
             False).apply(func=goal_checker, axis="columns")
-        et_scores_list = []
 
         if np.any(scores_in_et_series):
             # If there was at least one goal scored in an extra period.
-            indicies_of_goals = np.argwhere(
-                scores_in_et_series.to_numpy()).flatten().tolist()
-
-            for goal_index in indicies_of_goals:
-                corrected_goal_index = goal_index + half2_scores_series.size
-                assert corrected_goal_index <= match_events.shape[0]
-
-                side_of_goal = inverted_sides_dict.get(
-                    match_events.iloc[corrected_goal_index].teamId
-                )
-
-                if side_of_goal == "away":
-                    current_away_score += 1
-                else:
-                    current_home_score += 1
-                new_score = "{}-{}".format(current_away_score,
-                                           current_home_score)
-
-                et_scores_list += [current_score] * (
-                    goal_index - len(et_scores_list))
-                et_scores_list.append(new_score)
-
-                current_score = new_score
-
-            # Fill in the remaining values since the last goal found above.
-            et_scores_list += [current_score] * (
-                scores_in_et_series.size - len(et_scores_list))
+            et_scores_list = scores_in_half_compiler(
+                scores_in_half_series=scores_in_et_series,
+                current_score_str=current_score,
+                match_events=match_events,
+                team_id_to_side_dict=inverted_sides_dict
+            )
 
             et_scores_series = pd.Series(et_scores_list)
-            assert et_scores_series.size == scores_in_et_series.size
         else:
             # If there were no goals scored in the extra time period.
             et_scores_series = pd.Series(
@@ -695,19 +702,13 @@ def match_scores_generator(
             [current_score] * penalties_events.shape[0]
         )
 
-    # Put together all three of your results.
+    # Put together all four of your results.
     score_series = pd.concat(objs=[half1_scores_series,
                                    half2_scores_series,
                                    et_scores_series,
                                    penalties_scores_series],
                              ignore_index=True)
-    try:
-        assert score_series.size == match_events.shape[0]
-    except AssertionError as no_scores_for_each_event:
-        print(match_events.iloc[0].matchId)
-        print("Number of Scores Compiled: {}".format(score_series.size))
-        print("Number of Events Specified: {}".format(match_events.shape[0]))
-        raise no_scores_for_each_event
+    assert score_series.size == match_events.shape[0]
 
     to_return = score_series
 
