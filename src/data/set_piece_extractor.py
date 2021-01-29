@@ -108,10 +108,10 @@ def set_piece_sequence_generator(
     """
     Purpose
     -------
-    The purpose of this function is to run all of the tests written above
-    to determine how a particular set piece sequence ended and thus be
-    able to collect the full set of events/plays that make up that set
-    piece sequence of interest.
+    The purpose of this function is to run all of the tests written in
+    the `set_piece_ending_checker` script imported above to determine how
+    a particular set piece sequence ended and thus be able to collect the
+    full set of events/plays that make up that set piece sequence of interest.
 
     Parameters
     ----------
@@ -149,22 +149,13 @@ def set_piece_sequence_generator(
     sequence_df = ct.subsequent_play_generator(
         set_piece_start_id=set_piece_start_id, num_events=25
     )
-    sequence_tests = [
-        check.changed_possession_checker(set_piece_start_id, sequence_df),
-        check.attack_reset_checker(set_piece_start_id, sequence_df),
-        check.goalie_save_checker(set_piece_start_id, sequence_df),
-        check.goal_checker(set_piece_start_id, sequence_df),
-        check.foul_checker(set_piece_start_id, sequence_df),
-        check.offsides_checker(set_piece_start_id, sequence_df),
-        check.out_of_play_checker(set_piece_start_id, sequence_df),
-        check.end_of_regulation_checker(set_piece_start_id, sequence_df),
-        check.effective_clearance_checker(set_piece_start_id, sequence_df),
-        check.another_set_piece_checker(set_piece_start_id, sequence_df)
-    ]
+    checker_obj = check.SetPieceChecker(set_piece_start_id, sequence_df)
+    sequence_tests = checker_obj.checks
+    test_results = [test() for test in sequence_tests]
 
     # Now we must investigate the results of the checks
-    results_list = [test[0] for test in sequence_tests]
-    ids_list = [test[1] for test in sequence_tests]
+    results_list = [result[0] for result in test_results]
+    ids_list = [result[1] for result in test_results]
 
     try:
         # It must be true that at least one of the test returned true.
@@ -238,7 +229,7 @@ def set_piece_sequences_compiler(
         This error is raised when the user, for at least one parameter,
         passes in an object whose type is not among the accepted types
         for that parameter.
-        
+
     References
     ----------
     1. https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
