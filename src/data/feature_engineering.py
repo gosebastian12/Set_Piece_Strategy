@@ -338,22 +338,21 @@ def time_in_match_engineer(row) -> float:
 
     # Next, perform necessary calculation to arrive at feature value.
     total_match_time = 90 * 60    # Note how this is measured in seconds.
-    match_time = match_time_since_half
     if row.matchPeriod == "2H":
         # If we have to add the time elapsed in the first half to the
         # time in the match specified in the data.
-        match_time += 45 * 60
+        match_time_since_half += 45 * 60
     elif row.matchPeriod == "E1":
         # If we have to add the times elapsed in the first and second halves
         #  to the time in the match specified in the data.
-        match_time += 90 * 60
+        match_time_since_half += 90 * 60
     elif row.matchPeriod == "E2":
         # If we have to add the time elapsed in the first and second halves
         # as well as the time elapsed in the first period of the extra time
         # to the time in the match specified in the data.
-        match_time += 90 * 60 + 15 * 60
+        match_time_since_half += 90 * 60 + 15 * 60
 
-    normed_match_time = match_time / total_match_time
+    normed_match_time = match_time_since_half / total_match_time
 
     to_return = normed_match_time
 
