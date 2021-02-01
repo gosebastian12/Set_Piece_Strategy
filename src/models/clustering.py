@@ -5,8 +5,8 @@ Created on Tues Dec 22 10:20:01 CST 2020
 
 @author: Sebastian E. Gonzalez
 
-Script Purpose: Collection of functions that perform all of the clustering
-algorithm implementations done in various parts of this project.
+Script Purpose: This Python script contains a collection of functions that
+train all of the clustering algorithms used by this project.
 """
 ###################################
 ### Necessary Import Statements ###

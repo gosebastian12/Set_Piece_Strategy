@@ -5,8 +5,8 @@ Created on Sun Dec 13 02:21:39 CST 2020
 
 @author: Sebastian E. Gonzalez
 
-Script Purpose: Write functions that allow the user to determine how and
-when set piece sequences end.
+Script Purpose: This script contains functions that allow the user to
+determine how and when set piece sequences end.
 """
 ###################################
 ### Necessary Import Statements ###

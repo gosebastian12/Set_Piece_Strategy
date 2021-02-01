@@ -48,7 +48,16 @@ This [link](https://docs.google.com/presentation/d/1jqUp0S9pugfP3oyMhbzdbBDgwedd
 </details>
 
 <details>
-<summary>4. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/tree/main/src">src</a>: Stores all of the the code written during this project that performs all of the neccessary tasks for data loading, data pre-processing, model training, and model evaluation.</summary>
+<summary>4. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/tree/main/reports">reports</a>: Stores all of the files created to summarize the findings and conclusions of this project.</summary>
+  <ol>
+      <ol>
+        <li><code>Set_Piece_Sequence_Investigation_Slides.pdf</code>: PDF document that contains all of the slides of a Google Slides document used to present this project.</li>
+      </ol>
+  </ol>
+</details>
+
+<details>
+<summary>5. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/tree/main/src">src</a>: Stores all of the the code written during this project that performs all of the neccessary tasks for data loading, data pre-processing, model training, and model evaluation.</summary>
   <ol>
       <ol>
         <li><code>data/</code>: Directory that contains all of the source code dedicated to loading in and manipulating data.</li>
@@ -60,32 +69,37 @@ This [link](https://docs.google.com/presentation/d/1jqUp0S9pugfP3oyMhbzdbBDgwedd
 </details>
 
 <details>
-<summary>5. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/tree/main/visualizations">visualizations</a>: Stores all of the images that were saved while exploring that predictions of trained models.</summary>
+<summary>6. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/tree/main/visualizations">visualizations</a>: Stores all of the images that were saved while exploring that predictions of trained models.</summary>
   <ol>
       <ol>
-        <li><code>clustering_results/</code>: Directory that contains all of the visualizations that help with model evaluation.</li>
+        <li><code>cluster_scatter/</code>: Directory that contains all of the scatter plots that were used to first see how well the clustering model was able to segment between the different identified clusters in the feature space.</li>
+        <li><code>clusters_investigation/</code>: Directory that contains all of the visualizations that help with the in-depth cluster exploration performed after training the clustering models.</li>
+        <li><code>Data_Preprocessing_Pipeline.png</code>: Image that visually displays the sequence of steps that were taken to prepare the raw event-tracking data for clustering modeling.</li>
         <li><code>example_sps_1.gif</code>: GIF that shows the first example of a set piece (displayed above).</li>
         <li><code>example_sps_2.gif</code>: GIF that shows the second example of a set piece (displayed above).</li>
+        <li><code>match_2500097_boxscore.png: Image that displays the box score of the match for which we are displaying set piece sequence examples..</li>
         <li><code>match_2500097_spp_1.gif</code>: GIF of an example set piece sequence that was identified extracted by the source code that compiles all of the set piece sequences in our data set.</li>
+        <li><code>example_sps_1.png</code>: Image that displays the extracted out sequences of events that comprise the set piece sequence displayed in the corresponding GIF.</li>
         <li><code>match_2500097_spp_2.gif</code>: Another GIF of an example set piece sequence that was identified extracted by the source code that compiles all of the set piece sequences in our data set.</li>
+        <li><code>match_2500097_spp_2.png</code>: Image that displays the extracted out sequences of events that comprise the set piece sequence displayed in the corresponding GIF.</li>
       </ol>
   </ol>
 </details>
 
 <details>
-<summary>6. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/.gitignore">.gitignore</a>: Text file that specifies all of the files and directories that were not written to this repository for reasons such as security and memory/size limitations.</summary>
+<summary>7. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/.gitignore">.gitignore</a>: Text file that specifies all of the files and directories that were not written to this repository for reasons such as security and memory/size limitations.</summary>
 </details>
 
 <details>
-<summary>7. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/README.md">README.md</a>: Markdown file that contains all of the information used to generate this summary view.</summary>
+<summary>8. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/README.md">README.md</a>: Markdown file that contains all of the information used to generate this summary view.</summary>
 </details>
 
 <details>
-<summary>8. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/requirements.txt">README.md</a>: Text file that contains all of the Python packages and their versions that are need to successfully run the code in this project.</summary>
+<summary>9. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/requirements.txt">README.md</a>: Text file that contains all of the Python packages and their versions that are need to successfully run the code in this project.</summary>
 </details>
 
 <details>
-<summary>9. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/setup.py">setup.py</a>: Python script that allows the user to create a new local module that is comprised of all of the code found in `src/` directory.</summary>
+<summary>10. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/setup.py">setup.py</a>: Python script that allows the user to create a new local module that is comprised of all of the code found in `src/` directory.</summary>
 </details>
 
 # Future Improvements

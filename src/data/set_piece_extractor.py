@@ -5,9 +5,9 @@ Created on Tues Dec 08 06:14:02 CST 2020
 
 @author: Sebastian E. Gonzalez
 
-Script Purpose: Write functions that allow the user to take the raw
-Wyscout event-log data and obtain a collection of all of the set pieces
-and their subsequent plays that are present in the data.
+Script Purpose: This Python script contains functions that allow the user
+to take the raw Wyscout event-log data and obtain a collection of all of
+the set piece and their subsequent plays that are present in the data.
 """
 ###################################
 ### Necessary Import Statements ###

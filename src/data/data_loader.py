@@ -5,8 +5,10 @@ Created on Mon Nov 30 7:20:02 CST 2020
 
 @author: Sebastian E. Gonzalez
 
-Script Purpose: Write functions to allow for easy access to tracking data
-in Wyscout API and saved locally.
+Script Purpose: This script contains a collection of functions that each
+load-in the different data files found in this repository that were either
+downloaded directly from Wyscout or were the result of data 
+pre-processing/feature engineering.
 """
 ###################################
 ### Necessary Import Statements ###
@@ -380,7 +382,7 @@ def matches_data(league_name: str, rel_path=None) -> pd.DataFrame:
                                  parameter_var=rel_path)
 
     # Next, let's navigate to the appropriate directory.
-    matches_rel_dir = "../../data/raw/" if not rel_path else rel_path
+    matches_rel_dir = "../../data/raw/matches" if not rel_path else rel_path
     matches_dir = os.path.join(SCRIPT_DIR, matches_rel_dir)
 
     try:

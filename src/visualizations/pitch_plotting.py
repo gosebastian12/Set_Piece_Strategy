@@ -5,9 +5,9 @@ Created on Tues Jan 19 09:40:01 CST 2020
 
 @author: Sebastian E. Gonzalez
 
-Script Purpose: Collection of functions that are used for visualizations
-created that involve some sort of overlay on a soccer field which helps
-put the displayed data in its proper soccer context.
+Script Purpose: This script contains a collection of functions that are
+used for visualizations created that involve some sort of overlay on a
+soccer field which helps put the displayed data in its proper soccer context.
 """
 ###################################
 ### Necessary Import Statements ###

@@ -5,9 +5,10 @@ Created on Mon Dec 21 09:50:37 CST 2020
 
 @author: Sebastian E. Gonzalez
 
-Script Purpose: Collection of functions that collectively perform all of
-the necessary calculations and transformations to the sequence data set
-that result in the features we use for model training and evaluation.
+Script Purpose: This script contains a collection of functions that
+collectively perform all of the necessary calculations and transformations
+to the sequence data set that result in the features we use for model
+training.
 """
 ###################################
 ### Necessary Import Statements ###

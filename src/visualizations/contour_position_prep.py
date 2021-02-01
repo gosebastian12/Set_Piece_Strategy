@@ -5,11 +5,12 @@ Created on Wed Jan 20 05:03:11 CST 2020
 
 @author: Sebastian E. Gonzalez
 
-Script Purpose: Collection of functions that are used to help create a
-plot of contours that represent the density of sequences that either started
-or ended in that area of the field. This plot is generated for each cluster
-identified by the Machine Learning Cluster model chosen by the user to
-help determine what differentiates the clusters from each other.
+Script Purpose: This script contains a collection of functions that are
+used to help create a plot of contours that represent the density of
+sequences that either started or ended in that area of the field. This
+plot is generated for each cluster identified by the Machine Learning
+Cluster model chosen by the user to help determine what differentiates
+the clusters from each other.
 """
 ###################################
 ### Necessary Import Statements ###

@@ -5,8 +5,9 @@ Created on Tues Dec 29 01:40:10 CST 2020
 
 @author: Sebastian E. Gonzalez
 
-Script Purpose: Collection of functions that are used for visualizations
-created and show in the Jupyter Notebooks contained in this project.
+Script Purpose: This script contains a collection of functions that are
+used for basic visualizations created and shown in the Jupyter Notebooks
+contained in this project.
 """
 ###################################
 ### Necessary Import Statements ###
