@@ -454,7 +454,7 @@ def cluster_subplot_generator(
     fig.show()
     if save_plot:
         plot_dir = os.path.join(
-            SCRIPT_DIR, "../../visualizations/initial_clustering")
+            SCRIPT_DIR, "../../visualizations/")
 
         file_name = kwargs.get("file_name", None)
         try:

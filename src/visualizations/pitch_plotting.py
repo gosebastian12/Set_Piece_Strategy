@@ -457,7 +457,7 @@ def pitch_positions_cluster_generator(
         # If the user would like to save the resulting figure.
         plot_dir = os.path.join(
             SCRIPT_DIR, 
-            "../../visualizations/initial_clustering/clusters_investigation/kmeans"
+            "../../visualizations/clusters_investigation/kmeans"
         )
 
         file_name = kwargs.get("file_name", None)

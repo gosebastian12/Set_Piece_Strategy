@@ -1,5 +1,5 @@
 ### See the official documentation about gitignore files at: https://git-scm.com/docs/gitignore
-# Unnecessary module and jupyter files
+# Unnecessary module and Jupyter files
 **/.ipynb_checkpoints
 **/__pycache__
 **/.DS_Store
@@ -9,7 +9,6 @@ env/
 
 # Large data files
 data/raw/events/*.json
-data/interim/compiled_sequences/*.h5
-data/interim/*.csv
-data/raw/matches/
-data/final/initial_clustering/init_clust_features.csv
+data/interim/**
+data/raw/matches/**
+data/final/**
