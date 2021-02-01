@@ -77,7 +77,7 @@ This [link](https://docs.google.com/presentation/d/1jqUp0S9pugfP3oyMhbzdbBDgwedd
         <li><code>Data_Preprocessing_Pipeline.png</code>: Image that visually displays the sequence of steps that were taken to prepare the raw event-tracking data for clustering modeling.</li>
         <li><code>example_sps_1.gif</code>: GIF that shows the first example of a set piece (displayed above).</li>
         <li><code>example_sps_2.gif</code>: GIF that shows the second example of a set piece (displayed above).</li>
-        <li><code>match_2500097_boxscore.png: Image that displays the box score of the match for which we are displaying set piece sequence examples..</li>
+        <li><code>match_2500097_boxscore.png: Image that displays the box score of the match for which we are displaying set piece sequence examples.</li>
         <li><code>match_2500097_spp_1.gif</code>: GIF of an example set piece sequence that was identified extracted by the source code that compiles all of the set piece sequences in our data set.</li>
         <li><code>example_sps_1.png</code>: Image that displays the extracted out sequences of events that comprise the set piece sequence displayed in the corresponding GIF.</li>
         <li><code>match_2500097_spp_2.gif</code>: Another GIF of an example set piece sequence that was identified extracted by the source code that compiles all of the set piece sequences in our data set.</li>

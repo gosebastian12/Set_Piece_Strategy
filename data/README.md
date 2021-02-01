@@ -48,7 +48,7 @@ This directory stores all of the data that is used during the project. This rang
 </details>
 
 <details>
-<summary>1. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/tree/main/data/final">final</a>: Directory where the data obtained after feature engineering is stored. This data is used to train the clustering models of this project.</summary>
+<summary>3. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/tree/main/data/final">final</a>: Directory where the data obtained after feature engineering is stored. This data is used to train the clustering models of this project.</summary>
   <ol>
       <ol>
         <li><code>raw/</code>: Directory where the data was downloaded from Wyscout (see link above) is stored.</li>
