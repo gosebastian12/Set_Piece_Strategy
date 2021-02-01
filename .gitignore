@@ -9,6 +9,7 @@ env/
 
 # Large data files
 data/raw/events/*.json
-data/interim/**
+data/interim/*.csv
+data/interim/compiled_sequences/**
 data/raw/matches/**
-data/final/**
+data/final/*.csv
