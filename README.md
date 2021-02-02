@@ -1,13 +1,13 @@
 # Set Piece Strategy Analysis w/Data Science
 At the end of the day, any sport-related Data Science project should be focused on (either directly or in-directly) the bottom line of competition: to maximize your chances of **winning**. This project strives to do this in the context of soccer by focusing its scope on *set piece sequences*, the set of plays that immediately follow and are directly related to a set piece. 
 
-Set pieces are the events in soccer that resume play after there has been a stoppage because of, i.e., the ball going out of bounds, a foul occuring, etc. They are crucial to winning because it is easy for teams to execute pre-planned strategies since player movement and repositioning is allowed at the teams are getting ready to restart play. Since the team that has possession and is excuting the set piece knows what they are about to do while the other team is more in a reactive defensive mindset, many goals are scored off of set pieces that occur near the goal. In fact, 50% of the goals scored in the Men's 2018 World Cup were off of set pieces. That figure was at 25% for the Men's 2014 World Cup (the competition occurs every 4 years). Thus, if one can gain a deeper understanding of set piece strategy using Machine Learning, they could direct their teams towards more successful strategies to score more goals and to defend against those strategies when the other team is executing a set piece to prevent them from scoring goals. The end result would be your team having a better chance of having more goals than your opposition and thus a better chance of winning the match.
+Set pieces are the events in soccer that resume play after there has been a stoppage because of, i.e., the ball going out of bounds, a foul occurring, etc. They are crucial to winning because it is easy for teams to execute pre-planned strategies since player movement and repositioning is allowed at the teams are getting ready to restart play. Since the team that has possession and is executing the set piece knows what they are about to do while the other team is more in a reactive defensive mindset, many goals are scored off of set pieces that occur near the goal. In fact, 50% of the goals scored in the Men's 2018 World Cup were off of set pieces. That figure was at 25% for the Men's 2014 World Cup (the competition occurs every 4 years). Thus, if one can gain a deeper understanding of set piece strategy using Machine Learning, they could direct their teams towards more successful strategies to score more goals and to defend against those strategies when the other team is executing a set piece to prevent them from scoring goals. The end result would be your team having a better chance of having more goals than your opposition and thus a better chance of winning the match.
 
 ![alt-text](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/example_sps_1.gif)
 ![alt-text](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/example_sps_2.gif)
 
 
-Of course, being that this is a Data Science project, we need a data set to be able to solve this *business problem* of increasing a team's chances of winning by scoring more goals after gaining insight on set pieces. Luckily, there is a free and publicly-available data set that is (almost; more on that later) perfect for this task. This is the ["spatio-temporal" event tracking data set](https://www.nature.com/articles/s41597-019-0247-7#Tab2) that is collected and provided by [Wyscout](https://wyscout.com) (downloadable files of this data can be found [here](https://figshare.com/collections/Soccer_match_event_dataset/4415000)). Data is collected on a event-by-event basis for all matches in the 2017 and 2018 seasons of [La Liga](https://en.wikipedia.org/wiki/La_Liga), the [Premiere League](https://en.wikipedia.org/wiki/Premier_League), the [Bundesliga](https://en.wikipedia.org/wiki/Bundesliga), [Seria A](https://en.wikipedia.org/wiki/Serie_A), [Ligue 1](https://en.wikipedia.org/wiki/Ligue_1), [Champions League](https://en.wikipedia.org/wiki/UEFA_Champions_League), and [World Cup](https://en.wikipedia.org/wiki/FIFA_World_Cup) (events can simply be thought of as occurances in a soccer match such as passes, shots, fouls, etc.) For each event, you are given key information such as the coordinates of the ball on the field at the beginning and at the end of the event, the player that initiated the event (i.e., who made the pass), the team that that player is on, what kind of event it was (i.e., pass, duel, etc...) and when in the match the event occured, among other descriptive pieces of information.
+Of course, being that this is a Data Science project, we need a data set to be able to solve this *business problem* of increasing a team's chances of winning by scoring more goals after gaining insight on set pieces. Luckily, there is a free and publicly-available data set that is (almost; more on that later) perfect for this task. This is the ["spatio-temporal" event tracking data set](https://www.nature.com/articles/s41597-019-0247-7#Tab2) that is collected and provided by [Wyscout](https://wyscout.com) (download-able files of this data can be found [here](https://figshare.com/collections/Soccer_match_event_dataset/4415000)). Data is collected on a event-by-event basis for all matches in the 2017 and 2018 seasons of [La Liga](https://en.wikipedia.org/wiki/La_Liga), the [Premiere League](https://en.wikipedia.org/wiki/Premier_League), the [Bundesliga](https://en.wikipedia.org/wiki/Bundesliga), [Seria A](https://en.wikipedia.org/wiki/Serie_A), [Ligue 1](https://en.wikipedia.org/wiki/Ligue_1), [Champions League](https://en.wikipedia.org/wiki/UEFA_Champions_League), and [World Cup](https://en.wikipedia.org/wiki/FIFA_World_Cup) (events can simply be thought of as occurrences in a soccer match such as passes, shots, fouls, etc.) For each event, you are given key information such as the coordinates of the ball on the field at the beginning and at the end of the event, the player that initiated the event (i.e., who made the pass), the team that that player is on, what kind of event it was (i.e., pass, duel, etc...) and when in the match the event occurred, among other descriptive pieces of information.
 
 # TL;DR Conclusion
 
@@ -52,62 +52,106 @@ We see an encouraging level of clean segmentation across the clusters in this sp
 
 After validating that the model was able to identify clusters that were different from each other, the next step involved determining what each cluster meant since that was key to relating it back to the topic at hand, *winning games in soccer*. We did this generating the following plots for each cluster. Notice above that the optimal number of clusters we identified for the K-Means model was 6. The following is a breakdown of each:
 
-1. "Completely Down and Out"
-    1. Initiating team is losing.
-    2. Closest data point to cluster shows no goalie involvement.
-    3. The initiating team struggles a bit to hold on to possession.
-    4. The attack makes little progress towards the goal.
-    5. The event types is dominated by simple passes.
-    6. ![cluster 0 event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_0.png)
-    7. ![cluster 0 sub event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_0.png)
-    8. ![cluster 0 field-pos dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_0.png)
-2. "2nd Half Out the Gates"
-    1. Closest data shows the match is tied.
-    2. Time in match seems to favor being right after half-time.
-    3. Cluster with highest rate of shot attempts.
-    4. Cluster with highest rate of ball going out of bounds.
-    5. High distribution in attacking half.
-    6. ![cluster 1 event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_1.png)
-    7. ![cluster 1 sub event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_1.png)
-    8. ![cluster 1 field-pos dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_1.png) 
-3. "Lethargic Beginning"
-    1. Closest data point shows that we are early on in the match.
-    2. The match is tied.
-    3. High rate of goalie kicks
-    4. High rate of long passes.
-    5. Despite, long passes not much advancement towards goal. Perhaps goal kicks are not successful in lead towards effective attacks.
-    6. ![cluster 2 event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_2.png)
-    7. ![cluster 2 sub event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_2.png)
-    8. ![cluster 2 field-pos dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_2.png) 
-4. "1st Half Out the Gates"
-    1. Closest data point shows that we are early on in the match.
-    2. The match is tied.
-    3. Cluster with most involvement of forwards.
-    4. Cluster with best advancement towards goal.
-    5. Main difference with the second cluster is that these events occur early on in the match. 
-    6. ![cluster 3 event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_3.png)
-    7. ![cluster 3 sub event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_3.png)
-    8. ![cluster 3 field-pos dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_3.png)
-5. "Passive and Dominating"
-    1. Closest data point shows that the initiating team has a big lead.
-    2. Events occur late in the match
-    3. Closest data point to cluster shows no goalie involvement.
-    4. Cluster with Highest Possession Rate.
-    5. Most events occur in own half of field.
-    6. ![cluster 4 event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_4.png)
-    7. ![cluster 4 sub event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_4.png)
-    8. ![cluster 4 field-pos dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_4.png)
-6. "Coasting Towards Half Time"
-    1. The match is tied.
-    2. Closest data point shows that we are about to reach halftime for the match.
-    3. We mainly see passes and duels.
-    4. Cluster in which play is very fluid.
-    5. Minimal advancement towards the goal.
-    6. ![cluster 5 event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_5.png)
-    7. ![cluster 5 sub event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_5.png)
-    8. ![cluster 5 field-pos dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_5.png)
+<details>
+<summary>1. "Completely Down and Out"</summary>
+  <ol>
+    <ol>
+      <li>Initiating team is losing.</li>
+      <li>Closest data point to cluster shows no goalie involvement.</li>
+      <li>The initiating team struggles a bit to hold on to possession.</li>
+      <li>The attack makes little progress towards the goal.</li>
+      <li>The event types is dominated by simple passes.</li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_0.png"></li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_0.png"></li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_0.png"></li>
+    </ol>
+  </ol>
+</details>
+
+<details>
+<summary>2. "2nd Half Out the Gates"</summary>
+  <ol>
+    <ol>
+      <li>Closest data shows the match is tied.</li>
+      <li>Time in match seems to favor being right after half-time.</li>
+      <li>Cluster with highest rate of shot attempts.</li>
+      <li>Cluster with highest rate of ball going out of bounds.</li>
+      <li>High distribution in attacking half.</li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_1.png"></li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_1.png"></li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_1.png"></li>
+    </ol>
+  </ol>
+</details>
+
+<details>
+<summary>3. "Lethargic Beginning"</summary>
+  <ol>
+    <ol>
+      <li>Closest data point shows that we are early on in the match.</li>
+      <li>The match is tied.</li>
+      <li>High rate of goalie kicks</li>
+      <li>High rate of long passes.</li>
+      <li>Despite, long passes not much advancement towards goal. Perhaps goal kicks are not successful in lead towards effective attacks.</li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_2.png"></li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_2.png"></li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_2.png"></li>
+    </ol>
+  </ol>
+</details>
+
+<details>
+<summary>4. "1st Half Out the Gates"</summary>
+  <ol>
+    <ol>
+      <li>Closest data point shows that we are early on in the match.</li>
+      <li>The match is tied.</li>
+      <li>Cluster with most involvement of forwards.</li>
+      <li>Cluster with best advancement towards goal.</li>
+      <li>Main difference with the second cluster is that these events occur early on in the match. </li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_3.png"></li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_3.png"></li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_3.png"></li>
+    </ol>
+  </ol>
+</details>
+
+<details>
+<summary>5. "Passive and Dominating"</summary>
+  <ol>
+    <ol>
+      <li>Closest data point shows that the initiating team has a big lead.</li>
+      <li>Events occur late in the match</li>
+      <li>Closest data point to cluster shows no goalie involvement.</li>
+      <li>Cluster with Highest Possession Rate.</li>
+      <li>Most events occur in own half of field.</li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_4.png"></li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_4.png"></li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_4.png"></li>
+    </ol>
+  </ol>
+</details>
+
+<details>
+<summary>6. "Coasting Towards Half Time"</summary>
+  <ol>
+    <ol>
+      <li>The match is tied.</li>
+      <li>Closest data point shows that we are about to reach halftime for the match.</li>
+      <li>We mainly see passes and duels.</li>
+      <li>Cluster in which play is very fluid.</li>
+      <li>Minimal advancement towards the goal.</li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_5.png"></li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_5.png"></li>
+      <li><img src="https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_5.png"></li>
+    </ol>
+  </ol>
+</details>
 
 ### Tying it All Back to the Business Problem
+Recall that the goal of this project was to gain a deeper understanding of set pieces in order to help a team either maximize their chances of scoring more goals off of set pieces or minimize the chances of the other team scoring set piece goals since that will help a team's chance of winning. The results that we have for this project so far help in making significant progress towards that goal. As presently constructed, one can use the trained models of this project to analyze a specific team's set piece sequences by seeing how their classified clusters are distributed. They can see if they have executed many sequences that are in the "Passive and Dominating" cluster, for example, which of course would be very encouraging. Conversely, one analyze the set piece sequences of an upcoming opponent to quickly see how well they are at scoring off of set pieces; with that information, the coaches of that team can make an informed decision on how much they think they should prepare for such attacks in their team's preparation for match against that opponent.
+
+At the very least, we have Minimally Viable Product (MVP) with this project that shows that it is possible to obtain information about set piece strategy with position tracking data regarding the ball and descriptive event data.
 
 # Repository Contents and Organization
 *(Use drop-down menus to see more information about each directory)*
@@ -152,7 +196,7 @@ After validating that the model was able to identify clusters that were differen
 </details>
 
 <details>
-<summary>5. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/tree/main/src">src</a>: Stores all of the the code written during this project that performs all of the neccessary tasks for data loading, data pre-processing, model training, and model evaluation.</summary>
+<summary>5. <a href="https://github.com/gosebastian12/Set_Piece_Strategy/tree/main/src">src</a>: Stores all of the the code written during this project that performs all of the necessary tasks for data loading, data pre-processing, model training, and model evaluation.</summary>
   <ol>
       <ol>
         <li><code>data/</code>: Directory that contains all of the source code dedicated to loading in and manipulating data.</li>
