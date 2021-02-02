@@ -10,6 +10,7 @@ This directory contains all of the visualizations created during this project. T
       	<li><code>cluster_scatter/</code>: </li>
       		<ol>
       			<li><code>events_kmeans_scaled.png</code>: This image shows the clustering results in the feature space of a K-Means model trained on a scaled version of the event-by-event training data set.</li>
+                        <li><code>K_Means_Closest_Data_Points.png</code>: This image shows the data points in the training data set that are closest to the cluster centroids as identified by the K-Means model trained on the scaled version of the sequence-aggregated data set.</li>
       			<li><code>seq_kmeans_scaled.png</code>: This image shows the clustering results in the feature space of a K-Means model trained on a scaled version of the sequence aggregated training data set.</li>
       			<li><code>seq_kmeans_unscaled.png</code>: This image shows the clustering results in the feature space of K-Means model trained on an unscaled version of the sequence aggregated training data set..</li>
       			<li><code>seq_mean_shift_scaled.png</code>: This image shows the clustering results in the feature space of a Mean-Shift model trained on a scaled version of the sequence aggregated training data set.</li>

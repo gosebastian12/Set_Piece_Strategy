@@ -14,6 +14,101 @@ Of course, being that this is a Data Science project, we need a data set to be a
 # Results
 This [link](https://docs.google.com/presentation/d/1jqUp0S9pugfP3oyMhbzdbBDgweddCKFhVNKmHKDLbqM/edit#slide=id.gb88cbc0d2a_0_33) takes one to a shared Google Slides file that was used to present this project.
 
+### Data Preprocessing and Feature Engineering
+The following image displays all of the steps taken to take the raw event-tracking Wyscout data and prepare it for cluster model training.
+![Data Pre-Pipeline](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/Data_Preprocessing_Pipeline.png)
+
+By computing "cumulative scores", it is meant that code was executed to determine the score of the match at the point at which each event takes place. This was done because Wyscout only tracks the number of goals scored (slightly different than the score because of "own goals") by each team at the end of the two halves and during penalties (if there was a penalty shootout) and because the score differential provides a lot of game context for each event (information that we use later on).  Luckily, this computation simply requires the raw event-tracking data since the "101" and "102" tag values indicate when a goal and an own-goal have been scored. We are very confident in these cumulative score calculations because they are verified along the way with the aforementioned end-of-half scores.
+
+Perhaps the most important part of this project is the next step in the data pre-processing pipeline. The raw data set gives us information on all of the tracked events of a match. However, we are only interested in set pieces and the related events that are part of the sequence of attacking plays immediately following it. This what we refer to as set piece sequences. The set of events that make up these sequences is the data set that we ultimately after to use in model training. To extract these special event sequences took advantage of the fact that the attack following a set piece is over after any of the following things occur:
+
+1. The team playing defense during the set piece has comfortably taken back possession and is now dictating the flow of the match (that is, they have made several passes without the other team touching the ball).
+2. The team that initiated the set piece decides to completely reset whatever attack it started with that set piece. This could be seen by them passing the ball all the back to their side of the field (either to their defenders or to their goalie) and repositioning the rest of their players.
+3. The defending goalie saves any on-target shot attempt that was made forcing the original attacking team to retreat in preparation for the opposition to begin their possession of the ball.
+4. The attacking team is successful in their set piece attack and scores a goal. Thus, possession will now be turned over.
+5. The defending team commits a hard foul meaning that a new set piece sequence is about to start.s
+6. A player on the attacking team is called offsides meaning that possession will change hands.
+7. The attacking team accidentally kicks the ball out of bounds.
+8. The half is said to be over by the referees which results in a stop of any play.
+9. The defending team is able to make an effective clearance that either results in the defending team regaining possession or the attacking team having to reset its attack.
+10. Another set piece sequence begins for some reason.
+
+We also have the benefit of the fact that an event ID of "3" indicates that that specific event is a set piece. Thus, code was written to analyze a large chunk of plays (about 50) that immediately follow of the set pieces in our data set to determine when and how the corresponding set piece sequences ended. Below you will find two examples of set piece sequences that were extracted out from the May 13, 2018 match between Leicester City and Tottenham:
+![sps 1 table](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/match_2500097_sps_1.png)
+![sps 1 GIF](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/match_2500097_sps_1.gif)
+![sps 2 table](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/match_2500097_sps_2.png)
+![sps 2 GIF](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/match_2500097_sps_2.gif)
+
+Evidently, we can visually see each event identified as part of the sequence as well as how the score of the match in the last columns of the displayed tables get updated as the score off the sequence is scored.
+
+With all of the set piece sequences extracted out from the data set, the next steps involve feature engineering both at the event-by-event level as well as the sequence-by-sequence level. For the former, the positional, player, time, and score information is all taken to compute features such as the distance between where the event starts and end, a set of indicator variables that tells which position the initiating player players (goalie, defender, midfield, or forward), and the proportion through which the game has been played (i.e., 0.5 would be halftime and 1 would 90 minutes), to name a few. After doing this, we arrive a set of sequence-wide features by aggregating the information of all of the information into one set of feature vectors. For most features, this is simply done by taking the mean of all of its event values. For others, we take the maximum value or the first value across the event features. Now that we have sequence-wide features, the only remaining step is to ensure that the scale of all of the different features is comparable. We do this by implementing a z-score transformation to the features with a wide scale.
+
+### Clustering and Cluster Characteristics 
+Once the raw tracking has undergone all of the steps in the data pre-processing pipeline, it is ready to be used a training set for a clustering model. The two such models that we implemented were K-Means and Mean-Shift. Both methods yielded similar results and so we will focus our discussion on the results of the method that is the most computationally efficient and scalable, K-Means. The below image provides a snapshot of the cluster performance as viewed in the feature space:
+![feature space clustering](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/cluster_scatter/seq_kmeans_scaled.png)
+
+We see an encouraging level of clean segmentation across the clusters in this space. We can further determine how different the identified clusters are from each other by identifying the data instances that are closest to the centroids of each cluster. Doing so yields the following:
+![closest-centroid data instances](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/cluster_scatter/K_Means_Closest_Data_Points.png)
+
+After validating that the model was able to identify clusters that were different from each other, the next step involved determining what each cluster meant since that was key to relating it back to the topic at hand, *winning games in soccer*. We did this generating the following plots for each cluster. Notice above that the optimal number of clusters we identified for the K-Means model was 6. The following is a breakdown of each:
+
+1. "Completely Down and Out"
+    1. Initiating team is losing.
+    2. Closest data point to cluster shows no goalie involvement.
+    3. The initiating team struggles a bit to hold on to possession.
+    4. The attack makes little progress towards the goal.
+    5. The event types is dominated by simple passes.
+    6. ![cluster 0 event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_0.png)
+    7. ![cluster 0 sub event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_0.png)
+    8. ![cluster 0 field-pos dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_0.png)
+2. "2nd Half Out the Gates"
+    1. Closest data shows the match is tied.
+    2. Time in match seems to favor being right after half-time.
+    3. Cluster with highest rate of shot attempts.
+    4. Cluster with highest rate of ball going out of bounds.
+    5. High distribution in attacking half.
+    6. ![cluster 1 event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_1.png)
+    7. ![cluster 1 sub event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_1.png)
+    8. ![cluster 1 field-pos dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_1.png) 
+3. "Lethargic Beginning"
+    1. Closest data point shows that we are early on in the match.
+    2. The match is tied.
+    3. High rate of goalie kicks
+    4. High rate of long passes.
+    5. Despite, long passes not much advancement towards goal. Perhaps goal kicks are not successful in lead towards effective attacks.
+    6. ![cluster 2 event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_2.png)
+    7. ![cluster 2 sub event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_2.png)
+    8. ![cluster 2 field-pos dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_2.png) 
+4. "1st Half Out the Gates"
+    1. Closest data point shows that we are early on in the match.
+    2. The match is tied.
+    3. Cluster with most involvement of forwards.
+    4. Cluster with best advancement towards goal.
+    5. Main difference with the second cluster is that these events occur early on in the match. 
+    6. ![cluster 3 event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_3.png)
+    7. ![cluster 3 sub event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_3.png)
+    8. ![cluster 3 field-pos dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_3.png)
+5. "Passive and Dominating"
+    1. Closest data point shows that the initiating team has a big lead.
+    2. Events occur late in the match
+    3. Closest data point to cluster shows no goalie involvement.
+    4. Cluster with Highest Possession Rate.
+    5. Most events occur in own half of field.
+    6. ![cluster 4 event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_4.png)
+    7. ![cluster 4 sub event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_4.png)
+    8. ![cluster 4 field-pos dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_4.png)
+6. "Coasting Towards Half Time"
+    1. The match is tied.
+    2. Closest data point shows that we are about to reach halftime for the match.
+    3. We mainly see passes and duels.
+    4. Cluster in which play is very fluid.
+    5. Minimal advancement towards the goal.
+    6. ![cluster 5 event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/event_types_rel_hist_5.png)
+    7. ![cluster 5 sub event rel dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/subevent_types_rel_hist_5.png)
+    8. ![cluster 5 field-pos dist](https://github.com/gosebastian12/Set_Piece_Strategy/blob/main/visualizations/clusters_investigation/kmeans/Spatial_Dist_5.png)
+
+### Tying it All Back to the Business Problem
+
 # Repository Contents and Organization
 *(Use drop-down menus to see more information about each directory)*
 <details>
@@ -77,7 +172,7 @@ This [link](https://docs.google.com/presentation/d/1jqUp0S9pugfP3oyMhbzdbBDgwedd
         <li><code>Data_Preprocessing_Pipeline.png</code>: Image that visually displays the sequence of steps that were taken to prepare the raw event-tracking data for clustering modeling.</li>
         <li><code>example_sps_1.gif</code>: GIF that shows the first example of a set piece (displayed above).</li>
         <li><code>example_sps_2.gif</code>: GIF that shows the second example of a set piece (displayed above).</li>
-        <li><code>match_2500097_boxscore.png: Image that displays the box score of the match for which we are displaying set piece sequence examples.</li>
+        <li><code>match_2500097_boxscore.png</code>: Image that displays the box score of the match for which we are displaying set piece sequence examples.</li>
         <li><code>match_2500097_spp_1.gif</code>: GIF of an example set piece sequence that was identified extracted by the source code that compiles all of the set piece sequences in our data set.</li>
         <li><code>example_sps_1.png</code>: Image that displays the extracted out sequences of events that comprise the set piece sequence displayed in the corresponding GIF.</li>
         <li><code>match_2500097_spp_2.gif</code>: Another GIF of an example set piece sequence that was identified extracted by the source code that compiles all of the set piece sequences in our data set.</li>
